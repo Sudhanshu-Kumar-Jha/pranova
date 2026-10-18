@@ -224,7 +224,7 @@ In production, the backend builds both the Node.js server and the Vite React-Adm
 6. **Deploy:**
    - Railway automatically executes:
      - **Build Command:** `npm install && npm run build`
-     - **Start Command:** `npx prisma db push --skip-generate && npm start`
+     - **Start Command:** `npx prisma db push --skip-generate && cross-env NODE_ENV=production npm start`
 7. **Access Your Platform:**
    - Open your generated Railway domain (e.g. `https://pranova-production.up.railway.app`).
    - The React-Admin console loads instantly at the root URL.
@@ -272,11 +272,11 @@ When `ENABLE_SWAGGER=true` is set in `.env`:
 
 | Command | Description |
 | :--- | :--- |
-| `npm run dev` | Starts backend in hot-reload mode using `tsx watch` |
+| `npm run dev` | Starts backend in development mode (`NODE_ENV=development`) using `tsx watch` |
 | `npm run build` | Compiles backend TypeScript and builds the Admin Web Vite bundle |
 | `npm run build:server` | Compiles backend TypeScript to `dist/` |
 | `npm run build:admin` | Installs dependencies and builds the React-Admin web console |
-| `npm start` | Boots the compiled production server (`dist/server.js`) |
+| `npm start` | Boots the compiled production server (`dist/server.js`) in production mode (`NODE_ENV=production`) |
 | `npm run prisma:push` | Synchronizes Prisma schema definitions with the MySQL database |
 | `npm run seed` | Seeds baseline test records (doctors, medicines, tests, settings) |
 | `npm run db:import` | Restores verified platform database records from backup |

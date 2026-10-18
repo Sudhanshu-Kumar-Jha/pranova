@@ -1,8 +1,22 @@
 import dotenv from 'dotenv';
 import path from 'path';
 
-// Load .env from workspace root
+// Load .env from workspace root if present
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+
+// Detect production runtime: npm start, execution from dist/ directory, or explicit NODE_ENV=production
+const isDistExecution = Boolean((typeof __dirname !== 'undefined' && __dirname.includes('dist')) || process.argv[1]?.replace(/\\/g, '/').includes('/dist/'));
+const isNpmStart = process.env.npm_lifecycle_event === 'start';
+const isProduction = process.env.NODE_ENV === 'production' || isNpmStart || isDistExecution;
+
+if (isProduction && process.env.NODE_ENV !== 'test') {
+  process.env.NODE_ENV = 'production';
+  if (!process.env.APP_ENV || process.env.APP_ENV === 'development') {
+    process.env.APP_ENV = 'production';
+  }
+} else if (!process.env.NODE_ENV) {
+  process.env.NODE_ENV = 'development';
+}
 
 // 1. Resolve Database Configuration (MySQL)
 const dbConnection = process.env.DB_CONNECTION || 'mysql';
@@ -42,8 +56,8 @@ if (databaseUrl && !databaseUrl.includes('${')) {
 export const config = {
   app: {
     name: process.env.APP_NAME || 'PRANOVA',
-    env: process.env.APP_ENV || process.env.NODE_ENV || 'development',
-    debug: process.env.APP_DEBUG === 'true',
+    env: process.env.NODE_ENV || process.env.APP_ENV || 'production',
+    debug: process.env.APP_DEBUG === 'true' && process.env.NODE_ENV !== 'production',
     url: process.env.APP_URL || 'http://localhost:5000',
     port: Number(process.env.PORT) || 5000,
     timezone: process.env.APP_TIMEZONE || 'Asia/Kolkata',
