@@ -190,11 +190,11 @@ Start the production server:
 npm start
 ```
 
-The production server starts in **`production`** mode:
-- **Admin Web Console:** `http://localhost:5000/` and `http://localhost:5000/admin`
-- **Production Health Check:** `http://localhost:5000/health`
-- **REST API Endpoints:** `http://localhost:5000/api/v1/*`
-- **Interactive OpenAPI Explorer:** `http://localhost:5000/api-docs`
+The production server starts in **`production`** mode, anchoring all platform endpoints to your configured **`APP_URL`** (e.g. `https://<your-app-slug>.up.railway.app` or custom domain):
+- **Admin Web Console:** `${APP_URL}/` and `${APP_URL}/admin`
+- **Production Health Check:** `${APP_URL}/health`
+- **REST API Endpoints:** `${APP_URL}/api/v1/*`
+- **Interactive OpenAPI Explorer:** `${APP_URL}/api-docs`
 
 ---
 

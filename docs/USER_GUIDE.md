@@ -67,9 +67,12 @@ PRANOVA uses a strictly headless, API-first architecture designed for maximum pe
 
 ## 3. Accessing the Admin Console
 
-### 3.1 Portal URL
-- **Production Server:** `http://localhost:5000/` or `http://localhost:5000/admin`
-- **Cloud Deployment:** Your assigned Railway domain (e.g. `https://pranova-production.up.railway.app`)
+### 3.1 Platform URL & Slug Structure
+Access the platform using your configured **`APP_URL`** (e.g. `https://<your-app-slug>.up.railway.app` or custom domain):
+- **Admin Web Console:** `${APP_URL}/` and `${APP_URL}/admin`
+- **System Health Check:** `${APP_URL}/health`
+- **REST API Base Engine:** `${APP_URL}/api/v1`
+- **Interactive OpenAPI Explorer:** `${APP_URL}/api-docs`
 
 ### 3.2 Default Production Credentials
 On first boot, the platform automatically initializes and verifies the Super Administrator account:

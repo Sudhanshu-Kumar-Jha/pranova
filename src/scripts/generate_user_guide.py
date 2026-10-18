@@ -354,12 +354,14 @@ def build_pdf(output_path: str):
     story.append(Paragraph("3. Accessing the Admin Console", h1_style))
     story.append(
         Paragraph(
-            "Administrators access the central console through any standard modern web browser:",
+            "Administrators access the platform through their configured <b>APP_URL</b> and designated endpoint slugs:",
             body_style,
         )
     )
-    story.append(Paragraph("• <b>Local / Dedicated Server:</b> <code>http://localhost:5000/</code> or <code>/admin</code>", bullet_style))
-    story.append(Paragraph("• <b>Railway / Cloud Hosting:</b> Your generated cloud domain (e.g. <code>https://pranova-production.up.railway.app</code>)", bullet_style))
+    story.append(Paragraph("• <b>Admin Web Console:</b> <code>${APP_URL}/</code> and <code>${APP_URL}/admin</code> (e.g. <code>https://&lt;your-app-slug&gt;.up.railway.app/admin</code>)", bullet_style))
+    story.append(Paragraph("• <b>System Health Check:</b> <code>${APP_URL}/health</code>", bullet_style))
+    story.append(Paragraph("• <b>REST API Base Endpoint:</b> <code>${APP_URL}/api/v1</code>", bullet_style))
+    story.append(Paragraph("• <b>Interactive OpenAPI Explorer:</b> <code>${APP_URL}/api-docs</code>", bullet_style))
 
     story.append(Spacer(1, 6))
     creds_data = [

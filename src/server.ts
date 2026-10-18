@@ -71,15 +71,18 @@ async function startServer() {
     await bootstrapSettings();
 
     // 5. Start HTTP & WebSocket server
+    const baseUrl = config.app.url;
     server.listen(Number(PORT), '0.0.0.0', () => {
       console.log(`====================================================`);
       console.log(`  PRANOVA Healthcare Coordination API Engine        `);
       console.log(`  Mode: ${config.app.env}                           `);
-      console.log(`  Server running at: http://0.0.0.0:${PORT}          `);
-      console.log(`  Healthcheck:       http://localhost:${PORT}/health`);
-      console.log(`  Interactive API:   http://localhost:${PORT}/api-docs`);
+      console.log(`  App URL:           ${baseUrl}                     `);
+      console.log(`  Admin Console:     ${baseUrl}/admin               `);
+      console.log(`  Healthcheck:       ${baseUrl}/health              `);
+      console.log(`  REST API Engine:   ${baseUrl}/api/v1              `);
+      console.log(`  Interactive API:   ${baseUrl}/api-docs            `);
       console.log(`  Socket.io Stream:  Online (Emergency alerts ready)`);
-      console.log(`  Super Admin:       ${config.admin.email}`);
+      console.log(`  Super Admin:       ${config.admin.email}          `);
       console.log(`====================================================`);
     });
   } catch (error) {

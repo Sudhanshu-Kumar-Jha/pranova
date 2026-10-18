@@ -27,8 +27,12 @@ Use the **Authorize** button below to paste your Admin JWT token for interactive
   },
   servers: [
     {
-      url: 'http://localhost:5000/api/v1',
-      description: 'Local Development Server (v1)',
+      url: '/api/v1',
+      description: 'Active Platform Instance (Relative Path / Production Host)',
+    },
+    {
+      url: 'https://pranova-production.up.railway.app/api/v1',
+      description: 'Cloud Production API Engine (v1)',
     },
   ],
   components: {

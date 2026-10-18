@@ -53,13 +53,26 @@ if (databaseUrl && !databaseUrl.includes('${')) {
   process.env.DATABASE_URL = databaseUrl;
 }
 
+const resolvedPort = Number(process.env.PORT) || 5000;
+let resolvedAppUrl = process.env.APP_URL;
+
+if (!resolvedAppUrl || resolvedAppUrl === 'http://localhost:5000') {
+  if (process.env.RAILWAY_PUBLIC_DOMAIN) {
+    resolvedAppUrl = `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`;
+  } else if (process.env.RAILWAY_STATIC_URL) {
+    resolvedAppUrl = `https://${process.env.RAILWAY_STATIC_URL}`;
+  } else if (!resolvedAppUrl) {
+    resolvedAppUrl = `http://localhost:${resolvedPort}`;
+  }
+}
+
 export const config = {
   app: {
     name: process.env.APP_NAME || 'PRANOVA',
     env: process.env.NODE_ENV || process.env.APP_ENV || 'production',
     debug: process.env.APP_DEBUG === 'true' && process.env.NODE_ENV !== 'production',
-    url: process.env.APP_URL || 'http://localhost:5000',
-    port: Number(process.env.PORT) || 5000,
+    url: resolvedAppUrl.replace(/\/$/, ''),
+    port: resolvedPort,
     timezone: process.env.APP_TIMEZONE || 'Asia/Kolkata',
   },
   db: {
