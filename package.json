@@ -5,10 +5,11 @@
   "main": "dist/server.js",
   "scripts": {
     "dev": "cross-env NODE_ENV=development tsx watch --include .env src/server.ts",
-    "build:server": "tsc",
-    "build:admin": "npm --prefix admin-web install && npm --prefix admin-web run build",
-    "build": "tsc && npm run build:admin",
+    "build:server": "(prisma generate || exit 0) && tsc",
+    "build:admin": "npm --prefix admin-web install --include=dev && npm --prefix admin-web run build",
+    "build": "(prisma generate || exit 0) && tsc && npm run build:admin",
     "start": "cross-env NODE_ENV=production node dist/server.js",
+    "postinstall": "prisma generate || exit 0",
     "prisma:generate": "tsx src/scripts/prisma-cli.ts generate",
     "prisma:migrate": "tsx src/scripts/prisma-cli.ts migrate dev",
     "prisma:deploy": "tsx src/scripts/prisma-cli.ts migrate deploy",
@@ -34,9 +35,12 @@
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
+    "prisma": "^6.4.1",
     "socket.io": "^4.8.1",
     "swagger-jsdoc": "^6.3.0",
     "swagger-ui-express": "^5.0.1",
+    "tsx": "^4.19.3",
+    "typescript": "^5.8.2",
     "xlsx": "^0.18.5",
     "zod": "^3.24.2"
   },
@@ -49,10 +53,7 @@
     "@types/morgan": "^1.9.9",
     "@types/node": "^22.13.9",
     "@types/swagger-jsdoc": "^6.0.4",
-    "@types/swagger-ui-express": "^4.1.8",
-    "prisma": "^6.4.1",
-    "tsx": "^4.19.3",
-    "typescript": "^5.8.2"
+    "@types/swagger-ui-express": "^4.1.8"
   },
   "engines": {
     "node": ">=18.0.0"
