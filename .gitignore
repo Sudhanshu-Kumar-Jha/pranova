@@ -59,11 +59,18 @@ uploads/*
 
 # ------------------------------------------------------------------------------
 # 7. MOBILE CLIENT APPLICATIONS (React Native / Expo Apps)
-# Excluded from git repository for Railway web admin & server deployment
-# (Local app configuration and development remains fully intact)
+# Only ignore local dependencies, environment secrets & build outputs
 # ------------------------------------------------------------------------------
-patient-app/
-care-manager-app/
+patient-app/node_modules/
+patient-app/.expo/
+patient-app/dist/
+patient-app/.env
+patient-app/.env.local
+care-manager-app/node_modules/
+care-manager-app/.expo/
+care-manager-app/dist/
+care-manager-app/.env
+care-manager-app/.env.local
 
 # ------------------------------------------------------------------------------
 # 8. USER GUIDES & GENERATED DOCUMENTATION
