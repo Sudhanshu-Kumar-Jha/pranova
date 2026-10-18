@@ -16,7 +16,8 @@
     "prisma:push": "tsx src/scripts/prisma-cli.ts db push",
     "seed": "tsx prisma/seed.ts",
     "db:import": "tsx src/scripts/import_data.ts",
-    "generate:swagger": "tsx src/scripts/generate-swagger.ts"
+    "generate:swagger": "tsx src/scripts/generate-swagger.ts",
+    "generate:guide": "python src/scripts/generate_user_guide.py"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

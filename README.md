@@ -272,6 +272,14 @@ In production, the backend builds both the Node.js server and the Vite React-Adm
 
 ---
 
+## Client Operations & User Guide
+
+A comprehensive, production-aligned user manual is available for platform administrators, healthcare coordinators, and dispatchers:
+- **Online Markdown Guide:** [docs/USER_GUIDE.md](docs/USER_GUIDE.md) — Complete operational manual viewable directly in GitHub.
+- **Executive PDF Manual:** [docs/PRANOVA_User_Guide.pdf](docs/PRANOVA_User_Guide.pdf) — Formatted clinical operations guide for distribution and offline review.
+
+---
+
 ## Interactive API Documentation
 
 When `ENABLE_SWAGGER=true` is set in `.env`:
