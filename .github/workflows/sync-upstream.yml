@@ -1,0 +1,33 @@
+name: Sync Upstream
+
+on:
+  schedule:
+    - cron: '0 */6 * * *' # Automatically syncs every 6 hours
+  workflow_dispatch: # Allows manual 1-click sync from the GitHub Actions tab
+
+jobs:
+  sync:
+    name: Sync with Upstream
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git User
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Fetch and Merge Upstream
+        run: |
+          git remote add upstream https://github.com/Aman-Kumar-roy/pranova.git || true
+          git fetch upstream main
+          git merge upstream/main -m "chore(sync): automated merge from upstream Aman-Kumar-roy/pranova"
+          git push origin main
