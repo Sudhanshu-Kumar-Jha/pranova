@@ -1,26 +1,25 @@
 # PRANOVA — Enterprise Healthcare Coordination Platform & Clinical Operations Engine
 
-[![Node.js](https://img.shields.io/badge/Node.js-18%2B%20%7C%2020%2B-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
+[![Node.js](https://img.shields.io/badge/Node.js-18%2B%20%7C%2020%2B%20LTS-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.8-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Express](https://img.shields.io/badge/Express-4.21-000000?logo=express&logoColor=white)](https://expressjs.com/)
 [![Prisma](https://img.shields.io/badge/Prisma-6.4-2D3748?logo=prisma&logoColor=white)](https://www.prisma.io/)
 [![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?logo=mysql&logoColor=white)](https://www.mysql.com/)
 [![React-Admin](https://img.shields.io/badge/React--Admin-v5-2563EB?logo=react&logoColor=white)](https://marmelab.com/react-admin/)
-[![Vite](https://img.shields.io/badge/Vite-5.4-646CFF?logo=vite&logoColor=white)](https://vitejs.dev/)
-[![Railway Ready](https://img.shields.io/badge/Railway-Deploy%20Ready-0B0D0E?logo=railway&logoColor=white)](https://railway.app/)
+[![Railway Ready](https://img.shields.io/badge/Railway-Production%20Ready-0B0D0E?logo=railway&logoColor=white)](https://railway.app/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-PRANOVA is an enterprise-grade, headless, API-first **Healthcare Coordination & Clinical Operations Engine**. It bridges emergency response, clinical triage, telemedicine, diagnostic booking, and pharmacy fulfillment across three distinct user surfaces:
+PRANOVA is an enterprise-grade, headless, API-first **Healthcare Coordination & Clinical Operations Platform**. It coordinates emergency response, clinical triage, telemedicine appointments, diagnostic bookings, and pharmacy logistics across three distinct user surfaces:
 
 1. **Central Admin Web Console** — React-Admin v5 single-page application for clinical coordinators, operations supervisors, and dispatchers.
 2. **Patient Mobile App** — Native React Native (Expo) app for booking doctors, lab tests, ordering medicines, and triggering emergency SOS.
 3. **Care Manager Mobile App** — Native React Native (Expo) app for field clinical officers accepting triage dispatch, managing patient encounters, and updating case status.
 
-The platform is architected for instant deployment to cloud container platforms like **Railway**, **Render**, or **Docker**, with the Node.js Express server capable of serving both the complete REST/WebSocket API and the built React-Admin web console from a single unified container.
+The platform is designed for **high-performance production deployment** on cloud container platforms (**Railway**, **Render**, **Docker**, **AWS**, **GCP**). The Node.js Express server hosts both the complete REST/WebSocket API and the built React-Admin web console from a **single unified container**.
 
 ---
 
-## Architecture Overview
+## Production Architecture Overview
 
 ```
                                  +-----------------------------+
@@ -52,15 +51,19 @@ The platform is architected for instant deployment to cloud container platforms 
                                  +-----------------------------+
 ```
 
-### Core Architectural Principles
-- **Headless & API-First:** All client interfaces consume the central Express backend over RESTful JSON APIs and WebSockets.
-- **Strict Surface Segregation:** 
+### Core Production Highlights
+- **Single-Container Deployment:** In production, the Express backend serves the compiled React-Admin console at `/` and `/admin` while simultaneously powering all REST endpoints, WebSocket event streams, and OpenAPI documentation.
+- **Strict Surface Segregation:**
   - Administrative routes (`/api/v1/*`) are dedicated to the Admin Web Portal.
   - Patient consumer routes (`/api/v1/app/*`) are dedicated to the Patient Mobile App.
   - Field care manager routes (`/api/v1/cm/*`) are dedicated to the Care Manager Mobile App.
-- **Single-Container Cloud Deployment:** When built for production, the Express backend serves the static production bundle of the React-Admin console at `/` and `/admin` while simultaneously providing all REST endpoints, WebSocket event streams, and OpenAPI documentation.
-- **Immutable Clinical Timelines:** `CaseTimeline` entries provide an append-only, chronologically indexed audit history of patient encounters, emergency triage, and status transitions.
-- **Relational Integrity:** Strict MySQL foreign keys and composite indexes ensure referential consistency and sub-millisecond query execution.
+- **Zero-Downtime Resilience:** Resilient connection retry logic handles transient network connection resets with exponential backoff to eliminate spurious 500 errors.
+- **Production Hardening:**
+  - `NODE_ENV=production` enforced across all production commands.
+  - Morgan logging operates in standard `combined` Apache/Nginx format.
+  - Prisma query logging is restricted strictly to errors (`['error']`), preventing log flooding.
+  - Internal error stack traces are suppressed from client API responses.
+  - Auth cookies enforce `secure: true` on HTTPS.
 
 ---
 
@@ -68,7 +71,7 @@ The platform is architected for instant deployment to cloud container platforms 
 
 ```
 d:/PRANOVA
-├── admin-web/                     # React-Admin Single-Page Application (Vite + MUI v5)
+├── admin-web/                     # React-Admin Web Application (Vite + MUI v5)
 │   ├── src/
 │   │   ├── components/            # Sticky AppBar, Navigation Menu, Dashboard, Emergency Listener
 │   │   ├── design/                # Medical-grade tokens (teal/slate palette, elevations, typography)
@@ -79,10 +82,10 @@ d:/PRANOVA
 │   └── vite.config.ts
 ├── prisma/
 │   ├── schema.prisma              # Complete MySQL schema with full relations, enums, & table maps
-│   ├── seed.ts                    # Database seeder initializing test doctors, medicines, & tests
+│   ├── seed.ts                    # Production database seeder initializing doctors, medicines, & tests
 │   └── migrations/                # Version-controlled Prisma schema migrations
 ├── src/
-│   ├── config/                    # Environment variable resolver & Railway MySQL auto-detector
+│   ├── config/                    # Production environment resolver & Railway MySQL auto-detector
 │   ├── controllers/               # Express route controllers with Zod schema validation
 │   ├── db/                        # Database connection pool & Super Admin startup synchronizer
 │   ├── middlewares/               # JWT authentication, role guards (RBAC), and rate limiting
@@ -97,34 +100,34 @@ d:/PRANOVA
 │   └── swagger.json               # Auto-generated OpenAPI 3.0 specification
 ├── uploads/
 │   └── documents/                 # Medical document attachment store
-├── .env.example                   # Master environment variable template
+├── .env.example                   # Production environment template
 ├── .gitignore                     # Production ignore rules (excludes node_modules, build & mobile source)
 ├── AGENTS.md                      # AI coding agent architecture & governance specification
 ├── ARCHITECTURE.md                # System technical architecture guide
 ├── Dockerfile                     # Production container definition
-├── docker-compose.yml             # Local MySQL & platform orchestration
+├── docker-compose.yml             # MySQL & platform orchestration
 ├── Procfile                       # Cloud platform process declaration
 ├── railway.json                   # Railway deployment configuration
 ├── package.json                   # Root package definitions & build orchestrator
-└── README.md                      # Platform documentation
+└── README.md                      # Production deployment documentation
 ```
 
-> **Note on Mobile Applications:** The native mobile applications (`patient-app/` and `care-manager-app/`) are maintained in separate client workspaces and excluded from git in this repository via `.gitignore`. This ensures that cloud deployments (such as Railway or Render) only build and serve the backend API engine and Admin Web Console for clean, high-performance client demonstrations. All mobile API surfaces (`/api/v1/app/*` and `/api/v1/cm/*`) remain 100% functional and ready for mobile client connections.
+> **Note on Mobile Applications:** The native mobile applications (`patient-app/` and `care-manager-app/`) are maintained in separate client workspaces and excluded from git in this repository via `.gitignore`. This ensures cloud deployments (such as Railway or Render) only build and serve the backend API engine and Admin Web Console for clean, high-performance client demonstrations. All mobile API surfaces (`/api/v1/app/*` and `/api/v1/cm/*`) remain 100% functional and ready for mobile client connections.
 
 ---
 
-## System Requirements
+## Production System Requirements
 
 - **Node.js:** `v18.0.0` or higher (`v20.x` LTS recommended)
 - **npm:** `v9.0.0` or higher
 - **Database:** **MySQL 8.0+** or **MariaDB 10.4+** running on port `3306`
-- **Memory:** Minimum 1 GB RAM (2 GB+ recommended for production builds)
+- **Memory:** Minimum 1 GB RAM (2 GB+ recommended for production workloads)
 
 ---
 
-## Local Development Setup
+## Production Installation & Setup Guide
 
-Follow these steps to set up and run PRANOVA on your local workstation:
+Follow these steps to deploy and run PRANOVA in production:
 
 ### Step 1: Clone the Repository
 ```bash
@@ -132,29 +135,38 @@ git clone https://github.com/Aman-Kumar-roy/pranova.git
 cd pranova
 ```
 
-### Step 2: Configure Environment Variables
-Copy the template `.env.example` to `.env`:
+### Step 2: Configure Production Environment
+Copy the production environment template:
 ```bash
 cp .env.example .env
 ```
 
-Open `.env` and configure your MySQL database connection:
+Open `.env` and configure your production MySQL connection and security keys:
 ```ini
+NODE_ENV=production
+APP_ENV=production
+APP_DEBUG=false
+APP_URL=https://your-domain.com
+PORT=5000
+
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
 DB_PORT=3306
 DB_DATABASE=pranova_db
 DB_USERNAME=root
-DB_PASSWORD=your_mysql_password
+DB_PASSWORD=your_production_mysql_password
+
+JWT_SECRET=your_secure_32_char_access_token_secret
+JWT_REFRESH_SECRET=your_secure_32_char_refresh_token_secret
 ```
 
-### Step 3: Install Backend Dependencies
+### Step 3: Install Production Dependencies
 ```bash
 npm install
 ```
 
 ### Step 4: Synchronize Database Schema
-Push the Prisma schema to your local MySQL database:
+Push the Prisma schema to your MySQL database:
 ```bash
 npm run prisma:push
 ```
@@ -166,38 +178,39 @@ npm run seed
 ```
 *(Alternatively, run `npm run db:import` to restore verified clinical demo data from backup).*
 
-### Step 6: Start the Backend API Server
+### Step 6: Build the Production Application
+Build both the backend TypeScript engine and the React-Admin web console into optimized production bundles:
 ```bash
-npm run dev
+npm run build
 ```
-The server starts at `http://localhost:5000`:
-- **API Health Check:** `http://localhost:5000/health`
-- **Interactive OpenAPI Explorer:** `http://localhost:5000/api-docs`
 
-### Step 7: Run the Admin Web Console
-Open a new terminal window:
+### Step 7: Launch the Production Server
+Start the production server:
 ```bash
-cd admin-web
-npm install
-npm run dev
+npm start
 ```
-The Admin Web Console will start on `http://localhost:5173`.
+
+The production server starts in **`production`** mode:
+- **Admin Web Console:** `http://localhost:5000/` and `http://localhost:5000/admin`
+- **Production Health Check:** `http://localhost:5000/health`
+- **REST API Endpoints:** `http://localhost:5000/api/v1/*`
+- **Interactive OpenAPI Explorer:** `http://localhost:5000/api-docs`
 
 ---
 
-## Default Access Credentials
+## Default Production Credentials
 
 On startup, PRANOVA automatically creates and verifies the Super Administrator account configured in `.env`:
 
 | Role | Email | Password | Surface |
 | :--- | :--- | :--- | :--- |
-| **Super Administrator** | `admin@pranova.com` | `Admin@123456` | Web Admin (`/` or `http://localhost:5173`) |
+| **Super Administrator** | `admin@pranova.com` | `Admin@123456` | Web Admin (`/` or `/admin`) |
 
 ---
 
 ## Railway 1-Click Cloud Deployment (Client Demo)
 
-PRANOVA is pre-configured for instant deployment on [Railway](https://railway.app/) using `railway.json` and `Procfile`.
+PRANOVA is pre-configured for instant production deployment on [Railway](https://railway.app/) using `railway.json` and `Procfile`.
 
 ### How It Works on Railway
 In production, the backend builds both the Node.js server and the Vite React-Admin frontend into a single distributable bundle. When deployed:
@@ -225,7 +238,7 @@ In production, the backend builds both the Node.js server and the Vite React-Adm
    - Railway automatically executes:
      - **Build Command:** `npm install && npm run build`
      - **Start Command:** `npx prisma db push --skip-generate && cross-env NODE_ENV=production npm start`
-7. **Access Your Platform:**
+7. **Access Your Live Platform:**
    - Open your generated Railway domain (e.g. `https://pranova-production.up.railway.app`).
    - The React-Admin console loads instantly at the root URL.
    - Log in using your Super Admin credentials.
@@ -243,7 +256,7 @@ In production, the backend builds both the Node.js server and the Vite React-Adm
 ### 2. Telemedicine & Appointments
 - **Specialty Directory:** Cardiology, Pediatrics, General Medicine, Orthopedics, Dermatology, and more.
 - **Doctor Catalog:** Bio, qualifications, consultation fees, experience, and availability slots.
-- **Booking Flow:** Instant consultation scheduling with support for in-clinic visits and virtual video/audio tele-consultation rooms.
+- **Booking Flow:** Consultation scheduling with support for in-clinic visits and virtual video/audio tele-consultation rooms.
 
 ### 3. Pharmacy & Medicine Logistics
 - **Medicine Catalog:** Prescription requirements, dosage forms (tablets, syrups, injections), manufacturers, and retail pricing.
@@ -268,15 +281,15 @@ When `ENABLE_SWAGGER=true` is set in `.env`:
 
 ---
 
-## Available NPM Scripts
+## Available Production NPM Scripts
 
 | Command | Description |
 | :--- | :--- |
-| `npm run dev` | Starts backend in development mode (`NODE_ENV=development`) using `tsx watch` |
+| `npm install` | Installs dependencies and generates Prisma Client |
 | `npm run build` | Compiles backend TypeScript and builds the Admin Web Vite bundle |
 | `npm run build:server` | Compiles backend TypeScript to `dist/` |
 | `npm run build:admin` | Installs dependencies and builds the React-Admin web console |
-| `npm start` | Boots the compiled production server (`dist/server.js`) in production mode (`NODE_ENV=production`) |
+| `npm start` | Boots the compiled production server (`dist/server.js`) in `NODE_ENV=production` |
 | `npm run prisma:push` | Synchronizes Prisma schema definitions with the MySQL database |
 | `npm run seed` | Seeds baseline test records (doctors, medicines, tests, settings) |
 | `npm run db:import` | Restores verified platform database records from backup |
