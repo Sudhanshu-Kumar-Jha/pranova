@@ -23,7 +23,7 @@ const Section: React.FC<{ label: string }> = ({ label }) => {
 
 export const CustomMenu: React.FC = () => {
   return (
-    <Menu aria-label="Main navigation" sx={{ pb: 4 }}>
+    <Menu aria-label="Main navigation" sx={{ pb: 2, pt: 0.5 }}>
       <Menu.Item to="/dashboard" primaryText="Dashboard" leftIcon={<SpaceDashboardOutlinedIcon />} />
 
       <Section label="Care delivery" />
@@ -51,7 +51,7 @@ export const CustomMenu: React.FC = () => {
       <Menu.Item to="/settings" primaryText="Settings" leftIcon={<SettingsOutlinedIcon />} />
 
       {/* Clean bottom clearance spacer so all links can be scrolled comfortably above viewport bottom */}
-      <Box sx={{ height: 80, flexShrink: 0 }} aria-hidden="true" />
+      <Box sx={{ height: 32, flexShrink: 0 }} aria-hidden="true" />
     </Menu>
   );
 };

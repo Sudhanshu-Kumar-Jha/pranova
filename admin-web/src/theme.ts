@@ -221,6 +221,15 @@ function buildTheme(mode: 'light' | 'dark'): RaThemeOptions {
       MuiTablePagination: {
         styleOverrides: {
           root: { borderTop: `1px solid ${c.lineSoft}` },
+          toolbar: {
+            minHeight: 52,
+            '@media (max-width: 599.95px)': {
+              paddingLeft: 8,
+              paddingRight: 8,
+              flexWrap: 'wrap',
+              justifyContent: 'center',
+            },
+          },
           selectLabel: { fontSize: '0.8125rem', color: c.muted },
           displayedRows: { fontSize: '0.8125rem', color: c.muted, fontVariantNumeric: 'tabular-nums' },
         },
@@ -244,16 +253,15 @@ function buildTheme(mode: 'light' | 'dark'): RaThemeOptions {
             '@media (max-width: 899.95px)': {
               '& .RaLayout-content': { padding: '16px 14px 60px' },
             },
+            '@media (max-width: 599.95px)': {
+              '& .RaLayout-content': { padding: '12px 10px 50px' },
+            },
           },
         },
       },
       RaSidebar: {
         styleOverrides: {
           root: {
-            // React-Admin anchors this at ~0.8em from the viewport top, which
-            // assumes its own fixed AppBar. Ours is sticky and in flow, so
-            // without this the first menu items sit behind the header with no
-            // way to scroll them back into view.
             '& .RaSidebar-fixed': {
               top: `${APPBAR_HEIGHT}px`,
               height: `calc(100vh - ${APPBAR_HEIGHT}px)`,
@@ -261,11 +269,10 @@ function buildTheme(mode: 'light' | 'dark'): RaThemeOptions {
               maxHeight: `calc(100dvh - ${APPBAR_HEIGHT}px)`,
               backgroundColor: c.surface,
               borderRight: `1px solid ${c.line}`,
-              paddingBottom: 80,
+              paddingBottom: 24,
               overflowY: 'auto',
               overflowX: 'hidden',
-              // Keep navigation scroll self-contained so wheeling over nav does not drag details screen
-              overscrollBehavior: 'contain',
+              overscrollBehaviorY: 'contain',
               // Restore elegant, visible scrollbar that React-Admin hides by default
               scrollbarWidth: 'thin',
               scrollbarColor: `${c.subtle} transparent`,
@@ -284,17 +291,8 @@ function buildTheme(mode: 'light' | 'dark'): RaThemeOptions {
                 backgroundColor: c.subtle,
               },
             },
-            '@media (max-width: 599.95px)': {
-              '& .RaSidebar-fixed': {
-                top: `${APPBAR_HEIGHT_XS}px`,
-                height: `calc(100vh - ${APPBAR_HEIGHT_XS}px)`,
-                maxHeight: `calc(100dvh - ${APPBAR_HEIGHT_XS}px)`,
-                paddingBottom: 80,
-              },
-            },
             '& .MuiDrawer-paper': {
               backgroundColor: c.surface,
-              overflow: 'hidden',
             },
           },
         },
