@@ -3,8 +3,8 @@
 
 [phases.install]
 cmds = [
-  "npm install",
-  "npm --prefix admin-web install"
+  "npm install --include=dev",
+  "npm --prefix admin-web install --include=dev"
 ]
 
 [phases.build]

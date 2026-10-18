@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response, NextFunction } from 'express';
 import { requirePatient } from '../middlewares/auth.middleware.js';
 import { validateRequest } from '../middlewares/validate.middleware.js';
 import { sosRateLimiter } from '../middlewares/rateLimit.middleware.js';
@@ -69,7 +69,7 @@ router.use(requirePatient);
  *               description: { type: string, example: "Acute chest pain distress" }
  *     responses: { 201: { description: SOS activated } }
  */
-router.post('/sos', sosRateLimiter, (req, res, next) => {
+router.post('/sos', sosRateLimiter, (req: Request, res: Response, next: NextFunction) => {
   if (!req.body) req.body = {};
   if (!req.body.patientId && req.user?.id) {
     req.body.patientId = req.user.id;
