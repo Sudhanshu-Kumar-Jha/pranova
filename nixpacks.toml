@@ -1,0 +1,16 @@
+# Nixpacks configuration for PRANOVA Healthcare Platform
+# Automates dual-package installation (server & admin-web) during container install phase
+
+[phases.install]
+cmds = [
+  "npm install",
+  "npm --prefix admin-web install"
+]
+
+[phases.build]
+cmds = [
+  "npm run build"
+]
+
+[start]
+cmd = "node src/scripts/start-production.js"
