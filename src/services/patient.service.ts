@@ -20,14 +20,14 @@ export class PatientService {
       ...(search
         ? {
             OR: [
-              { phone: { contains: search, mode: 'insensitive' } },
-              { email: { contains: search, mode: 'insensitive' } },
+              { phone: { contains: search } },
+              { email: { contains: search } },
               {
                 patientProfile: {
                   OR: [
-                    { firstName: { contains: search, mode: 'insensitive' } },
-                    { lastName: { contains: search, mode: 'insensitive' } },
-                    { city: { contains: search, mode: 'insensitive' } },
+                    { firstName: { contains: search } },
+                    { lastName: { contains: search } },
+                    { city: { contains: search } },
                   ],
                 },
               },
@@ -65,6 +65,8 @@ export class PatientService {
       city: user.patientProfile?.city,
       state: user.patientProfile?.state,
       pincode: user.patientProfile?.pincode,
+      latitude: user.patientProfile?.latitude,
+      longitude: user.patientProfile?.longitude,
       emergencyContactName: user.patientProfile?.emergencyContactName,
       emergencyContactPhone: user.patientProfile?.emergencyContactPhone,
       medicalHistory: user.patientProfile?.medicalHistory,
@@ -115,6 +117,8 @@ export class PatientService {
       city: user.patientProfile.city,
       state: user.patientProfile.state,
       pincode: user.patientProfile.pincode,
+      latitude: user.patientProfile.latitude,
+      longitude: user.patientProfile.longitude,
       emergencyContactName: user.patientProfile.emergencyContactName,
       emergencyContactPhone: user.patientProfile.emergencyContactPhone,
       medicalHistory: user.patientProfile.medicalHistory,
@@ -195,9 +199,9 @@ export class PatientService {
         });
       }
 
-      await tx.patientProfile.update({
+      await tx.patientProfile.upsert({
         where: { userId: id },
-        data: {
+        update: {
           firstName: input.firstName || undefined,
           lastName: input.lastName || undefined,
           dateOfBirth: input.dateOfBirth ? new Date(input.dateOfBirth) : undefined,
@@ -210,6 +214,21 @@ export class PatientService {
           emergencyContactName: input.emergencyContactName || undefined,
           emergencyContactPhone: input.emergencyContactPhone || undefined,
           medicalHistory: input.medicalHistory !== undefined ? (input.medicalHistory || Prisma.JsonNull) : undefined,
+        },
+        create: {
+          userId: id,
+          firstName: input.firstName || 'Patient',
+          lastName: input.lastName || 'User',
+          dateOfBirth: input.dateOfBirth ? new Date(input.dateOfBirth) : null,
+          gender: input.gender || null,
+          bloodGroup: input.bloodGroup || null,
+          primaryAddress: input.primaryAddress || null,
+          city: input.city || null,
+          state: input.state || null,
+          pincode: input.pincode || null,
+          emergencyContactName: input.emergencyContactName || null,
+          emergencyContactPhone: input.emergencyContactPhone || null,
+          medicalHistory: input.medicalHistory || Prisma.JsonNull,
         },
       });
     });

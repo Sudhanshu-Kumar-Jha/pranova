@@ -3,7 +3,7 @@
   "info": {
     "title": "PRANOVA Healthcare Coordination Platform - REST API",
     "version": "1.0.0",
-    "description": "\n**PRANOVA** is a headless, API-first Healthcare Coordination Engine powering:\n- **Admin Web Console** (React-Admin Web)\n- **Patient Mobile App** (Flutter Native)\n- **Care Manager Mobile App** (Flutter Native)\n\n### Authentication\nMost endpoints require a valid JWT Bearer token in the `Authorization` header:\n```http\nAuthorization: Bearer <ACCESS_TOKEN>\n```\nUse the **Authorize** button below to paste your Admin JWT token for interactive testing.\n    ",
+    "description": "\n**PRANOVA** is a headless, API-first Healthcare Coordination Engine powering:\n- **Admin Web Console** (React-Admin Web)\n- **Patient Mobile App** (React Native / Expo)\n- **Care Manager Mobile App** (React Native / Expo)\n\n### Authentication\nMost endpoints require a valid JWT Bearer token in the `Authorization` header:\n```http\nAuthorization: Bearer <ACCESS_TOKEN>\n```\nUse the **Authorize** button below to paste your Admin JWT token for interactive testing.\n    ",
     "contact": {
       "name": "PRANOVA Engineering Team",
       "email": "engineering@pranova.com"
@@ -350,59 +350,6 @@
           }
         }
       },
-      "AuditLog": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "action": {
-            "type": "string",
-            "example": "ASSIGN_CASE"
-          },
-          "resource": {
-            "type": "string",
-            "example": "Case"
-          },
-          "resourceId": {
-            "type": "string",
-            "nullable": true
-          },
-          "actorEmail": {
-            "type": "string",
-            "nullable": true
-          },
-          "actorRole": {
-            "type": "string",
-            "nullable": true
-          },
-          "endpoint": {
-            "type": "string",
-            "example": "/api/v1/cases/xyz/assign"
-          },
-          "httpMethod": {
-            "type": "string",
-            "example": "PATCH"
-          },
-          "status": {
-            "type": "string",
-            "example": "SUCCESS"
-          },
-          "reason": {
-            "type": "string",
-            "nullable": true
-          },
-          "ipAddress": {
-            "type": "string",
-            "nullable": true
-          },
-          "createdAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
       "EmergencySosRequest": {
         "type": "object",
         "required": [
@@ -461,6 +408,231 @@
     }
   ],
   "paths": {
+    "/specialties": {
+      "get": {
+        "summary": "List medical specialties (Admin)",
+        "tags": [
+          "Specialties"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "isActive",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Specialties retrieved"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a medical specialty (Admin)",
+        "tags": [
+          "Specialties"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "Cardiology"
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "Heart & cardiovascular care"
+                  },
+                  "iconKey": {
+                    "type": "string",
+                    "example": "heart"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Specialty created"
+          }
+        }
+      }
+    },
+    "/specialties/{id}": {
+      "get": {
+        "summary": "Get a specialty (Admin)",
+        "tags": [
+          "Specialties"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Specialty retrieved"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update a specialty (Admin)",
+        "tags": [
+          "Specialties"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Specialty updated"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a specialty (Admin)",
+        "tags": [
+          "Specialties"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Specialty removed"
+          }
+        }
+      }
+    },
+    "/settings": {
+      "get": {
+        "summary": "Get application settings / branding (public)",
+        "tags": [
+          "Settings"
+        ],
+        "responses": {
+          "200": {
+            "description": "Settings map returned"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update application settings / branding (Admin)",
+        "tags": [
+          "Settings"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "app_name": {
+                    "type": "string",
+                    "example": "PRANOVA"
+                  },
+                  "app_logo": {
+                    "type": "string",
+                    "description": "URL or data: URI"
+                  },
+                  "app_favicon": {
+                    "type": "string",
+                    "description": "URL or data: URI"
+                  },
+                  "primary_color": {
+                    "type": "string",
+                    "example": "#0284c7"
+                  },
+                  "support_email": {
+                    "type": "string",
+                    "example": "support@pranova.health"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Settings updated"
+          }
+        }
+      }
+    },
     "/providers": {
       "get": {
         "summary": "List Healthcare Providers with type, status, and search filters",
@@ -709,6 +881,51 @@
         }
       }
     },
+    "/payments/webhook": {
+      "post": {
+        "summary": "Inbound payment gateway webhook (Razorpay / Stripe)",
+        "tags": [
+          "Payments & Invoices"
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "gatewayOrderId"
+                ],
+                "properties": {
+                  "event": {
+                    "type": "string",
+                    "example": "payment.captured"
+                  },
+                  "gatewayOrderId": {
+                    "type": "string"
+                  },
+                  "transactionId": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "SUCCESS",
+                      "FAILED"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Webhook received and processed"
+          }
+        }
+      }
+    },
     "/patients": {
       "get": {
         "summary": "List Patients with search and demographic filters",
@@ -870,11 +1087,1460 @@
         }
       }
     },
+    "/orders": {
+      "get": {
+        "summary": "List all medicine orders (Admin oversight)",
+        "tags": [
+          "Pharmacy Orders"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "PLACED",
+                "CONFIRMED",
+                "PACKED",
+                "OUT_FOR_DELIVERY",
+                "DELIVERED",
+                "CANCELLED"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "patientId",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Orders retrieved"
+          }
+        }
+      }
+    },
+    "/orders/{id}": {
+      "get": {
+        "summary": "Get a medicine order (Admin)",
+        "tags": [
+          "Pharmacy Orders"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Order retrieved"
+          }
+        }
+      }
+    },
+    "/orders/{id}/status": {
+      "patch": {
+        "summary": "Advance order fulfilment status (Admin)",
+        "tags": [
+          "Pharmacy Orders"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "status"
+                ],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "PLACED",
+                      "CONFIRMED",
+                      "PACKED",
+                      "OUT_FOR_DELIVERY",
+                      "DELIVERED",
+                      "CANCELLED"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Order status updated"
+          }
+        }
+      }
+    },
+    "/medicines": {
+      "get": {
+        "summary": "List pharmacy catalog (Admin)",
+        "tags": [
+          "Pharmacy"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "perPage",
+            "schema": {
+              "type": "integer",
+              "default": 12
+            }
+          },
+          {
+            "in": "query",
+            "name": "category",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "OTC",
+                "PRESCRIPTION",
+                "WELLNESS",
+                "DEVICE"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Medicines retrieved"
+          }
+        }
+      },
+      "post": {
+        "summary": "Add a medicine to the catalog (Admin)",
+        "tags": [
+          "Pharmacy"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "mrp",
+                  "sellingPrice"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "Paracetamol 500mg"
+                  },
+                  "brand": {
+                    "type": "string",
+                    "example": "Dolo"
+                  },
+                  "category": {
+                    "type": "string",
+                    "enum": [
+                      "OTC",
+                      "PRESCRIPTION",
+                      "WELLNESS",
+                      "DEVICE"
+                    ]
+                  },
+                  "mrp": {
+                    "type": "number",
+                    "example": 30
+                  },
+                  "sellingPrice": {
+                    "type": "number",
+                    "example": 27
+                  },
+                  "stock": {
+                    "type": "integer",
+                    "example": 500
+                  },
+                  "requiresPrescription": {
+                    "type": "boolean",
+                    "example": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Medicine added"
+          }
+        }
+      }
+    },
+    "/medicines/{id}": {
+      "get": {
+        "summary": "Get a medicine (Admin)",
+        "tags": [
+          "Pharmacy"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Medicine retrieved"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update a medicine (Admin)",
+        "tags": [
+          "Pharmacy"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Medicine updated"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a medicine (Admin)",
+        "tags": [
+          "Pharmacy"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Medicine removed"
+          }
+        }
+      }
+    },
+    "/lab-bookings": {
+      "get": {
+        "summary": "List all diagnostic lab bookings (Admin oversight)",
+        "tags": [
+          "Lab Bookings"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "BOOKED",
+                "SAMPLE_COLLECTED",
+                "PROCESSING",
+                "REPORT_READY",
+                "CANCELLED"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "patientId",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lab bookings retrieved"
+          }
+        }
+      }
+    },
+    "/lab-bookings/{id}": {
+      "get": {
+        "summary": "Get a lab booking (Admin)",
+        "tags": [
+          "Lab Bookings"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lab booking retrieved"
+          }
+        }
+      }
+    },
+    "/lab-bookings/{id}/status": {
+      "patch": {
+        "summary": "Advance lab booking status / attach report (Admin)",
+        "tags": [
+          "Lab Bookings"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "status"
+                ],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "BOOKED",
+                      "SAMPLE_COLLECTED",
+                      "PROCESSING",
+                      "REPORT_READY",
+                      "CANCELLED"
+                    ]
+                  },
+                  "reportUrl": {
+                    "type": "string",
+                    "example": "https://reports.pranova.health/r/abc.pdf"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lab booking status updated"
+          }
+        }
+      }
+    },
+    "/doctors": {
+      "get": {
+        "summary": "List doctors with specialty/city/status filters (Admin)",
+        "tags": [
+          "Doctors"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "perPage",
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          },
+          {
+            "in": "query",
+            "name": "specialtyId",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "query",
+            "name": "city",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ACTIVE",
+                "INACTIVE",
+                "ON_LEAVE"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Doctors retrieved"
+          }
+        }
+      },
+      "post": {
+        "summary": "Onboard a doctor (Admin)",
+        "tags": [
+          "Doctors"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "specialtyId",
+                  "firstName",
+                  "lastName"
+                ],
+                "properties": {
+                  "specialtyId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "firstName": {
+                    "type": "string",
+                    "example": "Asha"
+                  },
+                  "lastName": {
+                    "type": "string",
+                    "example": "Menon"
+                  },
+                  "qualifications": {
+                    "type": "string",
+                    "example": "MBBS",
+                    "MD (Cardiology)": null
+                  },
+                  "experienceYears": {
+                    "type": "integer",
+                    "example": 12
+                  },
+                  "consultationFeeVideo": {
+                    "type": "number",
+                    "example": 599
+                  },
+                  "consultationFeeClinic": {
+                    "type": "number",
+                    "example": 799
+                  },
+                  "city": {
+                    "type": "string",
+                    "example": "Bengaluru"
+                  },
+                  "isVideoEnabled": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Doctor onboarded"
+          }
+        }
+      }
+    },
+    "/doctors/{id}": {
+      "get": {
+        "summary": "Get a doctor with availability slots (Admin)",
+        "tags": [
+          "Doctors"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Doctor retrieved"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update a doctor (Admin)",
+        "tags": [
+          "Doctors"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Doctor updated"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a doctor (Admin)",
+        "tags": [
+          "Doctors"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Doctor removed"
+          }
+        }
+      }
+    },
+    "/doctors/{id}/status": {
+      "patch": {
+        "summary": "Change doctor status (Admin)",
+        "tags": [
+          "Doctors"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "status"
+                ],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "ACTIVE",
+                      "INACTIVE",
+                      "ON_LEAVE"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Status changed"
+          }
+        }
+      }
+    },
+    "/doctors/{id}/slots": {
+      "post": {
+        "summary": "Add a weekly availability slot (Admin)",
+        "tags": [
+          "Doctors"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "dayOfWeek",
+                  "startTime",
+                  "endTime"
+                ],
+                "properties": {
+                  "dayOfWeek": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 6,
+                    "example": 1
+                  },
+                  "startTime": {
+                    "type": "string",
+                    "example": "09:00"
+                  },
+                  "endTime": {
+                    "type": "string",
+                    "example": "13:00"
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "VIDEO",
+                      "AUDIO",
+                      "IN_CLINIC"
+                    ],
+                    "example": "VIDEO"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Slot added"
+          }
+        }
+      }
+    },
+    "/doctors/{id}/slots/{slotId}": {
+      "delete": {
+        "summary": "Remove an availability slot (Admin)",
+        "tags": [
+          "Doctors"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "path",
+            "name": "slotId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Slot removed"
+          }
+        }
+      }
+    },
+    "/diagnostic-tests": {
+      "get": {
+        "summary": "List diagnostic test catalog (Admin)",
+        "tags": [
+          "Diagnostics"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "category",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Diagnostic tests retrieved"
+          }
+        }
+      },
+      "post": {
+        "summary": "Add a diagnostic test (Admin)",
+        "tags": [
+          "Diagnostics"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "mrp",
+                  "sellingPrice"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "Complete Blood Count (CBC)"
+                  },
+                  "category": {
+                    "type": "string",
+                    "example": "Hematology"
+                  },
+                  "sampleType": {
+                    "type": "string",
+                    "example": "Blood"
+                  },
+                  "preparation": {
+                    "type": "string",
+                    "example": "No fasting required"
+                  },
+                  "mrp": {
+                    "type": "number",
+                    "example": 499
+                  },
+                  "sellingPrice": {
+                    "type": "number",
+                    "example": 349
+                  },
+                  "reportTimeHours": {
+                    "type": "integer",
+                    "example": 24
+                  },
+                  "homeCollectionAvailable": {
+                    "type": "boolean",
+                    "example": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Test added"
+          }
+        }
+      }
+    },
+    "/diagnostic-tests/{id}": {
+      "get": {
+        "summary": "Get a diagnostic test (Admin)",
+        "tags": [
+          "Diagnostics"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Test retrieved"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update a diagnostic test (Admin)",
+        "tags": [
+          "Diagnostics"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Test updated"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a diagnostic test (Admin)",
+        "tags": [
+          "Diagnostics"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Test removed"
+          }
+        }
+      }
+    },
+    "/cm/config": {
+      "get": {
+        "summary": "Admin-configured branding (Care Manager App, public)",
+        "tags": [
+          "App - Care Manager"
+        ],
+        "responses": {
+          "200": {
+            "description": "App configuration retrieved"
+          }
+        }
+      }
+    },
+    "/cm/me": {
+      "get": {
+        "summary": "Get my care-manager profile & active case count (Care Manager App)",
+        "tags": [
+          "App - Care Manager"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Profile retrieved"
+          }
+        }
+      }
+    },
+    "/cm/availability": {
+      "patch": {
+        "summary": "Update availability and current location (Care Manager App)",
+        "tags": [
+          "App - Care Manager"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "isAvailable": {
+                    "type": "boolean",
+                    "example": true
+                  },
+                  "latitude": {
+                    "type": "number",
+                    "example": 12.9716
+                  },
+                  "longitude": {
+                    "type": "number",
+                    "example": 77.5946
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Availability updated"
+          }
+        }
+      }
+    },
+    "/cm/cases": {
+      "get": {
+        "summary": "List cases assigned to me (Care Manager App)",
+        "tags": [
+          "App - Care Manager"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "OPEN",
+                "ASSIGNED",
+                "IN_PROGRESS",
+                "RESOLVED",
+                "CANCELLED"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Assigned cases retrieved"
+          }
+        }
+      }
+    },
+    "/cm/cases/{id}": {
+      "get": {
+        "summary": "View one of my assigned cases with timeline (Care Manager App)",
+        "tags": [
+          "App - Care Manager"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Case retrieved"
+          }
+        }
+      }
+    },
+    "/cm/cases/{id}/notes": {
+      "post": {
+        "summary": "Add a clinical or field observation note with GPS pin (Care Manager App)",
+        "tags": [
+          "App - Care Manager"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "notes"
+                ],
+                "properties": {
+                  "notes": {
+                    "type": "string",
+                    "example": "Patient vitals stable: BP 120/80, SpO2 99%."
+                  },
+                  "latitude": {
+                    "type": "number",
+                    "example": 12.9716
+                  },
+                  "longitude": {
+                    "type": "number",
+                    "example": 77.5946
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Field note added"
+          }
+        }
+      }
+    },
+    "/cm/cases/{id}/status": {
+      "patch": {
+        "summary": "Update the status of an assigned case (Care Manager App)",
+        "tags": [
+          "App - Care Manager"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "status"
+                ],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "OPEN",
+                      "ASSIGNED",
+                      "IN_PROGRESS",
+                      "RESOLVED",
+                      "CANCELLED"
+                    ]
+                  },
+                  "notes": {
+                    "type": "string",
+                    "example": "Reached patient; stabilising on site."
+                  },
+                  "latitude": {
+                    "type": "number"
+                  },
+                  "longitude": {
+                    "type": "number"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Case status updated"
+          }
+        }
+      }
+    },
+    "/cm/cases/{id}/awaiting-payment": {
+      "post": {
+        "summary": "Complete clinical field service and bill patient (Care Manager App)",
+        "tags": [
+          "App - Care Manager"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "amount"
+                ],
+                "properties": {
+                  "amount": {
+                    "type": "number",
+                    "example": 850
+                  },
+                  "notes": {
+                    "type": "string",
+                    "example": "Home visit wound dressing completed."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Case marked COMPLETED_AWAITING_PAYMENT"
+          }
+        }
+      }
+    },
+    "/cm/consents/check/{patientId}": {
+      "get": {
+        "summary": "Verify whether active clinical consent exists for a patient (Care Manager App)",
+        "tags": [
+          "App - Care Manager"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "patientId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Consent verification result"
+          }
+        }
+      }
+    },
+    "/cm/patients/{patientId}/documents": {
+      "get": {
+        "summary": "View patient clinical documents under active consent (Care Manager App)",
+        "tags": [
+          "App - Care Manager"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "patientId",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Clinical documents retrieved"
+          }
+        }
+      }
+    },
+    "/cm/documents/{id}": {
+      "get": {
+        "summary": "View a single clinical document with consent check (Care Manager App)",
+        "tags": [
+          "App - Care Manager"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Clinical document retrieved"
+          }
+        }
+      }
+    },
     "/cases/sos": {
       "post": {
-        "summary": "Trigger P1 Emergency SOS and broadcast alert to connected Admin consoles",
+        "summary": "Trigger P1 Emergency SOS and broadcast alert to connected Admin consoles (Admin Only)",
         "tags": [
           "Emergency SOS & Cases"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
         ],
         "requestBody": {
           "required": true,
@@ -1202,6 +2868,42 @@
         "responses": {
           "200": {
             "description": "Status updated"
+          }
+        }
+      }
+    },
+    "/cases/{id}/acknowledge": {
+      "post": {
+        "summary": "Acknowledge an active emergency alert by administrator",
+        "tags": [
+          "Emergency SOS & Cases"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Emergency alert acknowledged",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1609,6 +3311,1652 @@
           },
           "401": {
             "description": "Unauthorized"
+          }
+        }
+      }
+    },
+    "/appointments": {
+      "get": {
+        "summary": "List all appointments (Admin oversight)",
+        "tags": [
+          "Appointments"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "default": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "perPage",
+            "schema": {
+              "type": "integer",
+              "default": 10
+            }
+          },
+          {
+            "in": "query",
+            "name": "doctorId",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "query",
+            "name": "patientId",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "query",
+            "name": "type",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "VIDEO",
+                "AUDIO",
+                "IN_CLINIC"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "REQUESTED",
+                "CONFIRMED",
+                "IN_PROGRESS",
+                "COMPLETED",
+                "CANCELLED",
+                "NO_SHOW"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Appointments retrieved"
+          }
+        }
+      }
+    },
+    "/appointments/{id}": {
+      "get": {
+        "summary": "Get an appointment (Admin)",
+        "tags": [
+          "Appointments"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Appointment retrieved"
+          }
+        }
+      }
+    },
+    "/appointments/{id}/status": {
+      "patch": {
+        "summary": "Update appointment status (Admin / clinician)",
+        "tags": [
+          "Appointments"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "status"
+                ],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "REQUESTED",
+                      "CONFIRMED",
+                      "IN_PROGRESS",
+                      "COMPLETED",
+                      "CANCELLED",
+                      "NO_SHOW"
+                    ]
+                  },
+                  "prescriptionNote": {
+                    "type": "string",
+                    "example": "Amoxicillin 500mg x 5 days"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Status updated"
+          }
+        }
+      }
+    },
+    "/app/config": {
+      "get": {
+        "summary": "Admin-configured branding and storefront rules (Patient App, public)",
+        "tags": [
+          "App - Config"
+        ],
+        "responses": {
+          "200": {
+            "description": "App configuration retrieved"
+          }
+        }
+      }
+    },
+    "/app/sos": {
+      "post": {
+        "summary": "Trigger P1 Emergency SOS signal (Patient App)",
+        "tags": [
+          "App - Emergency"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "incidentLatitude": {
+                    "type": "number",
+                    "example": 12.9716
+                  },
+                  "incidentLongitude": {
+                    "type": "number",
+                    "example": 77.5946
+                  },
+                  "incidentAddress": {
+                    "type": "string",
+                    "example": "12, MG Road, Bengaluru"
+                  },
+                  "description": {
+                    "type": "string",
+                    "example": "Acute chest pain distress"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "SOS activated"
+          }
+        }
+      }
+    },
+    "/app/profile": {
+      "get": {
+        "summary": "Get my patient profile, vitals and address (Patient App)",
+        "tags": [
+          "App - Profile"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Profile retrieved"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update my patient profile, address, and demographics (Patient App)",
+        "tags": [
+          "App - Profile"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "firstName": {
+                    "type": "string",
+                    "example": "Rahul"
+                  },
+                  "lastName": {
+                    "type": "string",
+                    "example": "Sharma"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "rahul@pranova.com"
+                  },
+                  "gender": {
+                    "type": "string",
+                    "example": "Male"
+                  },
+                  "bloodGroup": {
+                    "type": "string",
+                    "example": "O+"
+                  },
+                  "primaryAddress": {
+                    "type": "string",
+                    "example": "12, MG Road"
+                  },
+                  "city": {
+                    "type": "string",
+                    "example": "Bengaluru"
+                  },
+                  "pincode": {
+                    "type": "string",
+                    "example": "560001"
+                  },
+                  "emergencyContactName": {
+                    "type": "string",
+                    "example": "Sunita Sharma"
+                  },
+                  "emergencyContactPhone": {
+                    "type": "string",
+                    "example": "+919876543210"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profile updated successfully"
+          }
+        }
+      }
+    },
+    "/app/specialties": {
+      "get": {
+        "summary": "Browse active specialties (Patient App)",
+        "tags": [
+          "App - Consultation"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Specialties retrieved"
+          }
+        }
+      }
+    },
+    "/app/doctors": {
+      "get": {
+        "summary": "Search the doctor directory (Patient App)",
+        "tags": [
+          "App - Consultation"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "specialtyId",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "query",
+            "name": "city",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Doctor directory retrieved"
+          }
+        }
+      }
+    },
+    "/app/doctors/{id}": {
+      "get": {
+        "summary": "View a doctor profile with availability (Patient App)",
+        "tags": [
+          "App - Consultation"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Doctor profile retrieved"
+          }
+        }
+      }
+    },
+    "/app/appointments": {
+      "get": {
+        "summary": "List my appointments (Patient App)",
+        "tags": [
+          "App - Consultation"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Appointments retrieved"
+          }
+        }
+      },
+      "post": {
+        "summary": "Book an appointment / video consultation (Patient App)",
+        "tags": [
+          "App - Consultation"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "doctorId",
+                  "scheduledStart"
+                ],
+                "properties": {
+                  "doctorId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "type": {
+                    "type": "string",
+                    "enum": [
+                      "VIDEO",
+                      "AUDIO",
+                      "IN_CLINIC"
+                    ],
+                    "example": "VIDEO"
+                  },
+                  "scheduledStart": {
+                    "type": "string",
+                    "format": "date-time",
+                    "example": "2026-10-20T10:30:00.000Z"
+                  },
+                  "durationMinutes": {
+                    "type": "integer",
+                    "example": 30
+                  },
+                  "reason": {
+                    "type": "string",
+                    "example": "Follow-up on blood pressure"
+                  },
+                  "symptoms": {
+                    "type": "string",
+                    "example": "Occasional dizziness"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Appointment booked (includes videoJoinUrl for tele-consults)"
+          }
+        }
+      }
+    },
+    "/app/appointments/{id}": {
+      "get": {
+        "summary": "View one of my appointments (Patient App)",
+        "tags": [
+          "App - Consultation"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Appointment retrieved"
+          }
+        }
+      }
+    },
+    "/app/appointments/{id}/video-token": {
+      "post": {
+        "summary": "Get a join token for the video consultation room (Patient App)",
+        "tags": [
+          "App - Consultation"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Video token issued"
+          }
+        }
+      }
+    },
+    "/app/appointments/{id}/cancel": {
+      "post": {
+        "summary": "Cancel my appointment (Patient App)",
+        "tags": [
+          "App - Consultation"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "cancelReason"
+                ],
+                "properties": {
+                  "cancelReason": {
+                    "type": "string",
+                    "example": "Schedule clash"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Appointment cancelled"
+          }
+        }
+      }
+    },
+    "/app/medicines": {
+      "get": {
+        "summary": "Browse the pharmacy catalog (Patient App)",
+        "tags": [
+          "App - Pharmacy"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "category",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "OTC",
+                "PRESCRIPTION",
+                "WELLNESS",
+                "DEVICE"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Catalog retrieved"
+          }
+        }
+      }
+    },
+    "/app/orders": {
+      "get": {
+        "summary": "List my medicine orders (Patient App)",
+        "tags": [
+          "App - Pharmacy"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Orders retrieved"
+          }
+        }
+      },
+      "post": {
+        "summary": "Place a medicine order (Patient App)",
+        "tags": [
+          "App - Pharmacy"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "items",
+                  "deliveryAddress",
+                  "phone"
+                ],
+                "properties": {
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "required": [
+                        "medicineId",
+                        "quantity"
+                      ],
+                      "properties": {
+                        "medicineId": {
+                          "type": "string",
+                          "format": "uuid"
+                        },
+                        "quantity": {
+                          "type": "integer",
+                          "example": 2
+                        }
+                      }
+                    }
+                  },
+                  "deliveryAddress": {
+                    "type": "string",
+                    "example": "12, MG Road, Bengaluru"
+                  },
+                  "city": {
+                    "type": "string",
+                    "example": "Bengaluru"
+                  },
+                  "pincode": {
+                    "type": "string",
+                    "example": "560001"
+                  },
+                  "phone": {
+                    "type": "string",
+                    "example": "+919123456789"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Order placed"
+          }
+        }
+      }
+    },
+    "/app/orders/{id}": {
+      "get": {
+        "summary": "Track one of my orders (Patient App)",
+        "tags": [
+          "App - Pharmacy"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Order retrieved"
+          }
+        }
+      }
+    },
+    "/app/lab-tests": {
+      "get": {
+        "summary": "Browse diagnostic tests (Patient App)",
+        "tags": [
+          "App - Diagnostics"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "category",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Test catalog retrieved"
+          }
+        }
+      }
+    },
+    "/app/lab-bookings": {
+      "get": {
+        "summary": "List my lab bookings (Patient App)",
+        "tags": [
+          "App - Diagnostics"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lab bookings retrieved"
+          }
+        }
+      },
+      "post": {
+        "summary": "Book a diagnostic test (Patient App)",
+        "tags": [
+          "App - Diagnostics"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "testId",
+                  "scheduledDate",
+                  "phone"
+                ],
+                "properties": {
+                  "testId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "collectionType": {
+                    "type": "string",
+                    "enum": [
+                      "HOME_COLLECTION",
+                      "LAB_VISIT"
+                    ],
+                    "example": "HOME_COLLECTION"
+                  },
+                  "scheduledDate": {
+                    "type": "string",
+                    "format": "date-time",
+                    "example": "2026-10-21T07:00:00.000Z"
+                  },
+                  "address": {
+                    "type": "string",
+                    "example": "12, MG Road, Bengaluru"
+                  },
+                  "city": {
+                    "type": "string",
+                    "example": "Bengaluru"
+                  },
+                  "pincode": {
+                    "type": "string",
+                    "example": "560001"
+                  },
+                  "phone": {
+                    "type": "string",
+                    "example": "+919123456789"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Lab test booked"
+          }
+        }
+      }
+    },
+    "/app/lab-bookings/{id}": {
+      "get": {
+        "summary": "Track one of my lab bookings (Patient App)",
+        "tags": [
+          "App - Diagnostics"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lab booking retrieved"
+          }
+        }
+      }
+    },
+    "/app/documents": {
+      "get": {
+        "summary": "List my uploaded clinical documents (Patient App)",
+        "tags": [
+          "App - Documents"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Documents retrieved"
+          }
+        }
+      },
+      "post": {
+        "summary": "Upload / register a new clinical document (Patient App)",
+        "tags": [
+          "App - Documents"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "title",
+                  "fileUrl"
+                ],
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "example": "Discharge Summary Hospital A"
+                  },
+                  "documentType": {
+                    "type": "string",
+                    "enum": [
+                      "PRESCRIPTION",
+                      "LAB_REPORT",
+                      "DISCHARGE_SUMMARY",
+                      "INSURANCE_POLICY",
+                      "VACCINATION_RECORD",
+                      "OTHER"
+                    ],
+                    "example": "DISCHARGE_SUMMARY"
+                  },
+                  "fileUrl": {
+                    "type": "string",
+                    "example": "https://storage.pranova.com/docs/doc_123.pdf"
+                  },
+                  "mimeType": {
+                    "type": "string",
+                    "example": "application/pdf"
+                  },
+                  "fileSize": {
+                    "type": "integer",
+                    "example": 204800
+                  },
+                  "notes": {
+                    "type": "string",
+                    "example": "Cardiology follow up"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Document uploaded"
+          }
+        }
+      }
+    },
+    "/app/documents/{id}": {
+      "get": {
+        "summary": "View a single clinical document (Patient App)",
+        "tags": [
+          "App - Documents"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Document retrieved"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a clinical document (Patient App)",
+        "tags": [
+          "App - Documents"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Document deleted"
+          }
+        }
+      }
+    },
+    "/app/consents": {
+      "get": {
+        "summary": "List my active and historical consents (Patient App)",
+        "tags": [
+          "App - Consent"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Consents retrieved"
+          }
+        }
+      },
+      "post": {
+        "summary": "Grant consent to a Care Manager or Provider (Patient App)",
+        "tags": [
+          "App - Consent"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "purpose"
+                ],
+                "properties": {
+                  "careManagerId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "providerId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "purpose": {
+                    "type": "string",
+                    "example": "Case Coordination & Wound Review"
+                  },
+                  "scope": {
+                    "type": "string",
+                    "example": "ALL_CLINICAL_RECORDS"
+                  },
+                  "durationHours": {
+                    "type": "integer",
+                    "example": 24
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Consent granted"
+          }
+        }
+      }
+    },
+    "/app/consents/{id}/revoke": {
+      "patch": {
+        "summary": "Revoke an active consent (Patient App)",
+        "tags": [
+          "App - Consent"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason": {
+                    "type": "string",
+                    "example": "Treatment completed"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Consent revoked"
+          }
+        }
+      }
+    },
+    "/app/payments/create-order": {
+      "post": {
+        "summary": "Create a mock payment order for a completed Case (Patient App)",
+        "tags": [
+          "App - Payments"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "caseId",
+                  "amount"
+                ],
+                "properties": {
+                  "caseId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "amount": {
+                    "type": "number",
+                    "example": 750
+                  },
+                  "currency": {
+                    "type": "string",
+                    "example": "INR"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Mock gateway order created"
+          }
+        }
+      }
+    },
+    "/app/payments/mock-checkout": {
+      "post": {
+        "summary": "Execute mock digital checkout (Patient App)",
+        "tags": [
+          "App - Payments"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "gatewayOrderId"
+                ],
+                "properties": {
+                  "gatewayOrderId": {
+                    "type": "string"
+                  },
+                  "paymentMethod": {
+                    "type": "string",
+                    "enum": [
+                      "UPI",
+                      "CARD",
+                      "NETBANKING",
+                      "WALLET"
+                    ],
+                    "example": "UPI"
+                  },
+                  "failSimulate": {
+                    "type": "boolean",
+                    "default": false
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Payment completed and Case settled to PAID"
+          }
+        }
+      }
+    },
+    "/app/cases/{id}/payment": {
+      "get": {
+        "summary": "Get payment and invoice details for a Case (Patient App)",
+        "tags": [
+          "App - Payments"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Payment details retrieved"
+          }
+        }
+      }
+    },
+    "/documents/{id}/view": {
+      "get": {
+        "summary": "Render authentic clinical printable HTML view of a medical document",
+        "tags": [
+          "Clinical Documents"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "query",
+            "name": "raw",
+            "schema": {
+              "type": "boolean"
+            },
+            "description": "Set true to download or stream raw binary file instead of HTML view"
+          },
+          {
+            "in": "query",
+            "name": "token",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Admin JWT token for browser tab authentication"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "HTML Clinical Document or Raw Binary Stream"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          },
+          "404": {
+            "description": "Document not found"
+          }
+        }
+      }
+    },
+    "/documents/{id}/file": {
+      "get": {
+        "summary": "Stream or download raw file attachment for a medical document",
+        "tags": [
+          "Clinical Documents"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "query",
+            "name": "download",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "1",
+                "0"
+              ]
+            }
+          },
+          {
+            "in": "query",
+            "name": "token",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Admin JWT token for browser tab authentication"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Raw file streamed or attachment downloaded"
+          },
+          "401": {
+            "description": "Unauthorized"
+          },
+          "403": {
+            "description": "Forbidden"
+          }
+        }
+      }
+    },
+    "/admin/documents": {
+      "get": {
+        "summary": "List all uploaded clinical documents across all patients (Admin Web)",
+        "tags": [
+          "Admin - Documents"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "patientId",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "query",
+            "name": "caseId",
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "in": "query",
+            "name": "documentType",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of documents retrieved"
+          }
+        }
+      }
+    },
+    "/admin/documents/{id}": {
+      "get": {
+        "summary": "Inspect a specific medical document metadata and download link (Admin Web)",
+        "tags": [
+          "Admin - Documents"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Document metadata retrieved and access logged"
+          }
+        }
+      }
+    },
+    "/admin/documents/{id}/access-logs": {
+      "get": {
+        "summary": "Fetch immutable access logs for a specific document (Admin Web)",
+        "tags": [
+          "Admin - Documents"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Immutable access logs retrieved"
+          }
+        }
+      }
+    },
+    "/admins": {
+      "get": {
+        "summary": "List administrator accounts (Admin)",
+        "tags": [
+          "Administrators"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Administrators retrieved"
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a new administrator (Admin)",
+        "tags": [
+          "Administrators"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "email",
+                  "password",
+                  "firstName",
+                  "lastName"
+                ],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "ops.lead@pranova.com"
+                  },
+                  "password": {
+                    "type": "string",
+                    "example": "StrongPass@123"
+                  },
+                  "firstName": {
+                    "type": "string",
+                    "example": "Priya"
+                  },
+                  "lastName": {
+                    "type": "string",
+                    "example": "Nair"
+                  },
+                  "department": {
+                    "type": "string",
+                    "example": "Operations"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Administrator created"
+          }
+        }
+      }
+    },
+    "/admins/{id}": {
+      "get": {
+        "summary": "Get an administrator (Admin)",
+        "tags": [
+          "Administrators"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Administrator retrieved"
+          }
+        }
+      }
+    },
+    "/admins/{id}/status": {
+      "patch": {
+        "summary": "Activate / suspend an administrator (Admin)",
+        "tags": [
+          "Administrators"
+        ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "status"
+                ],
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "ACTIVE",
+                      "INACTIVE",
+                      "SUSPENDED"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Status updated"
           }
         }
       }

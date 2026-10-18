@@ -10,15 +10,19 @@ export const authenticate = async (
   next: NextFunction
 ) => {
   try {
-    const authHeader = req.headers.authorization;
+    let token: string | undefined;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      throw ApiError.unauthorized('Missing or malformed Authorization header. Expected "Bearer <token>"');
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      token = authHeader.split(' ')[1];
+    } else if (req.query?.token && typeof req.query.token === 'string') {
+      token = req.query.token;
+    } else if (req.cookies && (req.cookies.token || req.cookies.accessToken)) {
+      token = req.cookies.token || req.cookies.accessToken;
     }
 
-    const token = authHeader.split(' ')[1];
     if (!token) {
-      throw ApiError.unauthorized('Authorization token not provided');
+      throw ApiError.unauthorized('Missing or malformed Authorization header. Expected "Bearer <token>"');
     }
 
     const payload = JwtUtils.verifyAccessToken(token);

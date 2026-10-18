@@ -67,20 +67,6 @@ export class ExportService {
       type: 'buffer',
     });
 
-    // Record Export event in AuditLog
-    await prisma.auditLog.create({
-      data: {
-        actorId: actorId || null,
-        actorEmail: actorEmail || null,
-        action: 'EXPORT_CASES',
-        resource: 'Case',
-        endpoint: '/api/v1/cases/export/excel',
-        httpMethod: 'POST',
-        reason: reason.trim(),
-        requestPayload: { rowCount: rows.length, reason: reason.trim() },
-        status: 'SUCCESS',
-      },
-    });
 
     return {
       buffer: excelBuffer,

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { AuthController } from '../controllers/auth.controller.js';
 import { validateRequest } from '../middlewares/validate.middleware.js';
 import { authenticate, requireAdmin } from '../middlewares/auth.middleware.js';
+import { otpRateLimiter } from '../middlewares/rateLimit.middleware.js';
 import {
   adminLoginSchema,
   adminRegisterSchema,
@@ -128,6 +129,7 @@ router.post(
  */
 router.post(
   '/otp/send',
+  otpRateLimiter,
   validateRequest(sendOtpSchema),
   AuthController.sendOtp
 );
@@ -161,6 +163,7 @@ router.post(
  */
 router.post(
   '/otp/verify',
+  otpRateLimiter,
   validateRequest(verifyOtpSchema),
   AuthController.verifyOtp
 );

@@ -96,4 +96,35 @@ export class CaseController {
       next(error);
     }
   }
+
+  static async acknowledge(req: Request, res: Response, next: NextFunction) {
+    try {
+      const id = req.params.id as string;
+      const adminId = req.user?.id;
+      const result = await CaseService.acknowledge(id, adminId);
+      return ApiResponse.success(res, 'Emergency alert acknowledged successfully', result);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async myCases(req: Request, res: Response, next: NextFunction) {
+    try {
+      const patientId = req.user?.id;
+      const result = await CaseService.list({ ...req.query, patientId });
+      return ApiResponse.send({
+        res,
+        statusCode: 200,
+        message: 'Patient coordination cases retrieved successfully',
+        data: result.data,
+        meta: {
+          total: result.total,
+          page: result.page,
+          perPage: result.perPage,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }

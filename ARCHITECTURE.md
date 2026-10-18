@@ -1,43 +1,36 @@
 # PRANOVA Technical Skills & Architecture Guide
 
-## Backend Stack (Express + TypeScript)
-- **Language:** Node.js with TypeScript (Strict mode).
-- **Framework:** Express.js. 
-- **Architecture:** 3-Tier Architecture (Routes -> Controllers -> Services).
-- **Database:** PostgreSQL (Relational integrity is mandatory for healthcare data).
-- **ORM:** Prisma.
-- **Auth:** JWT (Access + Refresh tokens). MFA for Admin, Phone+OTP for Patients.
-- **Validation:** Zod (for all incoming request payloads).
-- **Real-Time:** Socket.io (for Emergency P1 alerts to the Admin Web panel).
-- **File Handling:** S3-compatible storage for medical documents.
+## 1. System Overview & Technology Stack
+PRANOVA is a strictly headless, API-first Healthcare Coordination Platform. The unified stack is standard TypeScript across backend, admin web, and native mobile clients:
+- **Backend:** Node.js with TypeScript (strict mode), Express.js, Prisma ORM.
+- **Database:** MySQL 8 / MariaDB on port 3306 (database `pranova_db`). Relational integrity is mandatory for clinical healthcare coordination.
+- **Admin Console (Web Only):** React-Admin v5 (Vite + TypeScript + Material-UI v5). Consumes top-level `/api/v1/*` routes.
+- **Patient App (Mobile Only):** Native React Native (Expo SDK 57) with TypeScript + React Native Paper. Consumes `/api/v1/app/*` routes.
+- **Care Manager App (Mobile Only):** Native React Native (Expo SDK 57) with TypeScript + React Native Paper. Consumes `/api/v1/cm/*` routes.
+- **Real-Time Layer:** Socket.io with JWT handshake authorization and role-segmented rooms (`admin_room`, `care_managers`, `patient_<id>`).
 
-## Database Rules (Prisma + PostgreSQL)
-- NEVER use MongoDB. Healthcare requires strict relational data (Patients -> Cases -> Providers -> Consents).
-- Every table must have `createdAt` and `updatedAt` timestamps.
-- Medical Cases must have a `CaseTimeline` table that logs EVERY status change and action.
-- Consents must have an `expiresAt` timestamp and a `revokedAt` field.
-- Audit logs must be immutable (soft delete only, never hard delete).
+## 2. Hard Architectural Constraints
+- **STRICT PLATFORM SEPARATION:** Clients never cross surfaces. Admin endpoints (`/api/v1/*`) are Web only. Patient endpoints (`/api/v1/app/*`) are Patient app only. Care Manager endpoints (`/api/v1/cm/*`) are Care Manager app only.
+- **NO WEBVIEWS:** Under no circumstances should the mobile apps use WebViews or wrap the Admin panel. They are 100% native React Native (Expo) apps consuming the REST API.
+- **DATABASE RESERVED KEYWORDS:** On MySQL, `model Case` is explicitly mapped to table `cases` (`@@map("cases")`) to prevent SQL reserved keyword conflicts.
+- **IMMUTABLE TIMELINE & CLINICAL RECORDS:** Case activity (`CaseTimeline`) is append-only. Hard deletes and updates are rejected at the ORM extension and service levels.
+- **CLINICAL CONSENT GUARD (DPDP / HIPAA):** Field Care Managers cannot access patient clinical documents (`/cm/patients/:id/documents`) without an active, unexpired clinical consent record granted by the patient. Every PHI read access creates an immutable `DocumentAccessLog` entry.
 
-## Admin Panel Rules (React-Admin)
-- **Framework:** React-Admin (Vite + TypeScript).
-- **Purpose:** Data-heavy CRUD operations, Triage, and Assignment.
-- **Key Logic:** The Admin dashboard does not create Cases from scratch; it receives them from the API and performs the "Assign Care Manager" action.
-- **Exporting:** Must use `xlsx` library to export audit logs and must require a "Reason for Export" input before downloading.
+## 3. Database Rules (Prisma + MySQL 8)
+- Every table includes `createdAt` and `updatedAt` timestamps.
+- Composite indexes on `Case`: `@@index([careManagerId, status])` and `@@index([createdAt])` for sub-millisecond dispatch queries.
+- Clinical Consents have an explicit `expiresAt` timestamp (default 24h) and a `revokedAt` field for immediate patient revocation.
+- Relational cascades protect clinical history (`onDelete: Restrict` or `Cascade` where appropriate).
 
-## Mobile App Rules (Flutter)
-- **Framework:** Flutter (Dart).
-- **Architecture:** Feature-first folder structure. Use Riverpod or Bloc for state management.
-- **Build Flavors:** One codebase. Two flavors: `patient` and `care_manager`. 
-- **API Layer:** Use Dio for HTTP requests. Create a centralized `ApiClient` class.
-- **Patient App Features:** SOS button (foreground location only), document upload, payment via UPI, case timeline.
-- **Care Manager App Features:** Receive push notifications (FCM), background location tracking for navigation, status update buttons.
-- **NO WEBVIEWS:** All UI must be built with Flutter widgets.
+## 4. Mobile App Architecture (React Native + Expo)
+- **Framework:** React Native with Expo Router (`app/` filesystem-based routing).
+- **UI Engine:** React Native Paper + unified design tokens matching clinical aesthetics.
+- **State & Server Cache:** TanStack React Query v5 + Zustand for persistent auth state.
+- **Secure Token Storage:** `expo-secure-store` for JWT Access and Refresh tokens with automated refresh interceptor and 401 loop breaking.
+- **Location Services:** `expo-location` for genuine GPS fix fetching. No fabricated fallback coordinates are permitted in healthcare workflows.
 
-## Module Execution Order (Phase 1 Pilot)
-When commanded to start, execute in this exact order:
-1. **Foundation:** Database Schema (Prisma), Auth (OTP/JWT), RBAC.
-2. **Admin Core:** User Management, Provider Directory (Module 5), Case Management Dashboard (Module 4).
-3. **Patient App Core:** Registration, SOS Trigger (Module 3), Case Timeline, Document Upload (Module 6).
-4. **Care Manager App Core:** Receive Assignment, Update Status, Navigation.
-5. **Integrations:** Payments (Module 8), SMS/WhatsApp (Module 7).
-6. **Admin Reporting:** Audit Logs, Excel Export (Module 9).
+## 5. Security & Safety Standards
+- **Rate Limiting:** `express-rate-limit` active on all sensitive endpoints (`/auth/otp/*` capped at 3 requests per 10 mins per IP; `/app/sos` capped at 1 request per minute per user).
+- **Handshake Verification:** Unauthenticated socket connections are rejected at the `io.use()` handshake layer.
+- **PHI Masking:** Telemetry alerts emit triage identifiers and coordinates without broadcasting sensitive medical profile fields platform-wide.
+- **Emergency Acknowledgement:** Admin Emergency Alert modal requires explicit operator acknowledgement, recording `acknowledgedAt` and `acknowledgedById` in the database.

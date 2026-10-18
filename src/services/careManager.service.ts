@@ -24,16 +24,16 @@ export class CareManagerService {
       ...(search
         ? {
             OR: [
-              { phone: { contains: search, mode: 'insensitive' } },
-              { email: { contains: search, mode: 'insensitive' } },
+              { phone: { contains: search } },
+              { email: { contains: search } },
               {
                 careManagerProfile: {
                   OR: [
-                    { firstName: { contains: search, mode: 'insensitive' } },
-                    { lastName: { contains: search, mode: 'insensitive' } },
-                    { employeeCode: { contains: search, mode: 'insensitive' } },
-                    { specialization: { contains: search, mode: 'insensitive' } },
-                    { assignedZone: { contains: search, mode: 'insensitive' } },
+                    { firstName: { contains: search } },
+                    { lastName: { contains: search } },
+                    { employeeCode: { contains: search } },
+                    { specialization: { contains: search } },
+                    { assignedZone: { contains: search } },
                   ],
                 },
               },

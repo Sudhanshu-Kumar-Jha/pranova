@@ -10,6 +10,7 @@ import { errorHandler } from './middlewares/errorHandler.js';
 import { ApiError } from './utils/apiError.js';
 import { ApiResponse } from './utils/apiResponse.js';
 import apiRoutes from './routes/index.js';
+import config from './config/env.config.js';
 
 const app: Application = express();
 
@@ -19,10 +20,10 @@ app.use(helmet({ contentSecurityPolicy: false }));
 // Cookie parsing
 app.use(cookieParser());
 
-// CORS configuration supporting web and mobile environments
+// CORS configuration supporting web, LAN, and mobile environments
 const allowedOrigins = process.env.CORS_ORIGIN
   ? process.env.CORS_ORIGIN.split(',').map((o) => o.trim())
-  : ['http://localhost:5173', 'http://localhost:3000'];
+  : ['http://localhost:5173', 'http://localhost:3000', 'http://192.168.1.46:5173', 'http://192.168.1.46:3000'];
 
 app.use(
   cors({
@@ -30,6 +31,13 @@ app.use(
       // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
       if (!origin || allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
         return callback(null, true);
+      }
+      // Allow any LAN origin in development (e.g. 192.168.x.x, 10.x.x.x, localhost, etc.)
+      if (process.env.NODE_ENV !== 'production') {
+        const isLanOrigin = /^https?:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+)(:\d+)?$/.test(origin);
+        if (isLanOrigin) {
+          return callback(null, true);
+        }
       }
       return callback(new ApiError(403, `CORS blocked for origin: ${origin}`));
     },
@@ -48,9 +56,17 @@ if (process.env.NODE_ENV !== 'test') {
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Swagger / OpenAPI Interactive Documentation (Loaded dynamically from dedicated swagger/ folder)
+// Static files / uploads asset serving via APP_URL
+app.use('/uploads', express.static(path.resolve(process.cwd(), 'uploads')));
+
+// Swagger / OpenAPI Interactive Documentation.
+// Gated behind ENABLE_SWAGGER (config.swagger.enabled) so it is served only in
+// dev/staging and can be switched off — or removed — for production. The
+// explorer URL lives only in .env / .env.example (SWAGGER_URL); it is never
+// surfaced from any client UI.
 const swaggerJsonPath = path.resolve(process.cwd(), 'swagger', 'swagger.json');
 
+if (config.swagger.enabled) {
 app.use('/api-docs', swaggerUi.serve, (req: Request, res: Response, next: NextFunction) => {
   if (fs.existsSync(swaggerJsonPath)) {
     try {
@@ -90,14 +106,41 @@ app.get('/api-docs.json', (_req: Request, res: Response) => {
     message: 'swagger.json not found. Run npm run generate:swagger.',
   });
 });
+} // end if (config.swagger.enabled)
 
-// Health Check Endpoints
+// Root and Health Check Endpoints
+app.get('/', (_req: Request, res: Response) => {
+  const adminDistPath = path.resolve(process.cwd(), 'admin-web', 'dist');
+  if (fs.existsSync(adminDistPath)) {
+    return res.sendFile(path.resolve(adminDistPath, 'index.html'));
+  }
+  return ApiResponse.success(res, 'PRANOVA Healthcare Coordination Platform is running', {
+    status: 'ONLINE',
+    service: 'pranova-backend',
+    version: '1.0.0',
+    adminWeb: '/admin',
+    health: '/health',
+    apiV1Health: '/api/v1/health',
+    apiDocs: '/api-docs',
+    timestamp: new Date().toISOString(),
+  });
+});
+
 app.get('/health', (_req: Request, res: Response) => {
   return ApiResponse.success(res, 'PRANOVA API Engine is healthy', {
     status: 'ONLINE',
     service: 'pranova-backend',
     version: '1.0.0',
     uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+  });
+});
+
+app.get('/api/v1', (_req: Request, res: Response) => {
+  return ApiResponse.success(res, 'PRANOVA API Engine v1 is running', {
+    status: 'ONLINE',
+    service: 'pranova-backend-v1',
+    health: '/api/v1/health',
     timestamp: new Date().toISOString(),
   });
 });
@@ -112,6 +155,16 @@ app.get('/api/v1/health', (_req: Request, res: Response) => {
 
 // API Routes Mount Point (v1)
 app.use('/api/v1', apiRoutes);
+
+// Serve Admin Web Console (if built)
+const adminDistPath = path.resolve(process.cwd(), 'admin-web', 'dist');
+if (fs.existsSync(adminDistPath)) {
+  app.use(express.static(adminDistPath));
+  app.use('/admin', express.static(adminDistPath));
+  app.get('/admin/*', (_req: Request, res: Response) => {
+    res.sendFile(path.resolve(adminDistPath, 'index.html'));
+  });
+}
 
 // Handle 404 for undefined routes
 app.use((req: Request, _res: Response, next: NextFunction) => {

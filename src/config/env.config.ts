@@ -4,19 +4,38 @@ import path from 'path';
 // Load .env from workspace root
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
-// 1. Resolve Database Configuration (Bagisto Style)
-const dbConnection = process.env.DB_CONNECTION || 'pgsql';
-const dbHost = process.env.DB_HOST || '127.0.0.1';
-const dbPort = Number(process.env.DB_PORT) || 5432;
-const dbDatabase = process.env.DB_DATABASE || 'pranova_db';
-const dbUsername = process.env.DB_USERNAME || 'postgres';
-const dbPassword = process.env.DB_PASSWORD || 'postgres';
-const dbSchema = process.env.DB_SCHEMA || 'public';
+// 1. Resolve Database Configuration (MySQL)
+const dbConnection = process.env.DB_CONNECTION || 'mysql';
+let dbHost = process.env.DB_HOST || process.env.MYSQLHOST || '127.0.0.1';
+let dbPort = Number(process.env.DB_PORT || process.env.MYSQLPORT) || 3306;
+let dbDatabase = process.env.DB_DATABASE || process.env.MYSQLDATABASE || 'pranova_db';
+let dbUsername = process.env.DB_USERNAME || process.env.MYSQLUSER || 'root';
+let dbPassword = process.env.DB_PASSWORD || process.env.MYSQLPASSWORD || '';
+let dbSchema = process.env.DB_SCHEMA || 'pranova_db';
+const dbSslMode = process.env.DB_SSLMODE || 'prefer';
 
-// Construct standard Prisma DATABASE_URL if missing or contains raw template placeholders
-let databaseUrl = process.env.DATABASE_URL;
-if (!databaseUrl || databaseUrl.includes('${')) {
-  databaseUrl = `postgresql://${dbUsername}:${dbPassword}@${dbHost}:${dbPort}/${dbDatabase}?schema=${dbSchema}&pgbouncer=true&connection_limit=1`;
+// Enforce single source of truth between DATABASE_URL and DB_* settings
+let databaseUrl = process.env.DATABASE_URL || process.env.MYSQL_URL;
+
+if (databaseUrl && !databaseUrl.includes('${')) {
+  // If an explicit DATABASE_URL is configured, parse components to keep config.db synchronized
+  try {
+    const normalized = databaseUrl.replace(/^mysql:\/\//i, 'http://');
+    const parsed = new URL(normalized);
+    if (parsed.hostname) dbHost = parsed.hostname;
+    if (parsed.port) dbPort = Number(parsed.port);
+    if (parsed.username) dbUsername = decodeURIComponent(parsed.username);
+    if (parsed.password) dbPassword = decodeURIComponent(parsed.password);
+    if (parsed.pathname && parsed.pathname.length > 1) {
+      dbDatabase = parsed.pathname.slice(1);
+    }
+  } catch {
+    // Retain defaults if URL is custom format
+  }
+} else {
+  // Construct standard MySQL connection string from DB_* variables
+  const userPass = dbPassword ? `${encodeURIComponent(dbUsername)}:${encodeURIComponent(dbPassword)}` : encodeURIComponent(dbUsername);
+  databaseUrl = `mysql://${userPass}@${dbHost}:${dbPort}/${dbDatabase}`;
   process.env.DATABASE_URL = databaseUrl;
 }
 

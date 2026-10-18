@@ -1,14 +1,25 @@
 import http from 'http';
 // Load environment variables and Bagisto-style database configuration
-import './config/env.config.js';
-
+import config from './config/env.config.js';
 import app from './app.js';
 import { prisma } from './utils/prisma.js';
 import { initSocketIO } from './socket/index.js';
-import { ensureLocalPostgres, stopLocalPostgres } from './db/local-postgres.js';
+import { verifyDatabaseConnection, disconnectDatabase } from './db/connection.js';
+import { bootstrapSuperAdmin, bootstrapSettings } from './db/bootstrap.js';
 
-const PORT = process.env.PORT || 5000;
+const PORT = config.app.port || process.env.PORT || 5000;
 const server = http.createServer(app);
+
+// Graceful port-in-use handling
+server.on('error', (err: NodeJS.ErrnoException) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`\n[PRANOVA_FATAL] Port ${PORT} is already in use by another process.`);
+    console.error(`Please close the other running server or update PORT in .env.\n`);
+  } else {
+    console.error('[PRANOVA_FATAL] Server error:', err);
+  }
+  process.exit(1);
+});
 
 // Initialize Socket.io Real-Time Alert Engine
 const io = initSocketIO(server);
@@ -20,8 +31,7 @@ const gracefulShutdown = async (signal: string) => {
   server.close(async () => {
     console.log('[PRANOVA] HTTP & Socket.io server closed.');
     try {
-      await prisma.$disconnect();
-      await stopLocalPostgres();
+      await disconnectDatabase();
       console.log('[PRANOVA] Database connections closed successfully.');
       process.exit(0);
     } catch (error) {
@@ -51,18 +61,25 @@ process.on('uncaughtException', (error: Error) => {
 
 async function startServer() {
   try {
-    // 1. Ensure local embedded PostgreSQL wire-protocol server is active
-    await ensureLocalPostgres();
+    // 1. Verify connection to MySQL database server
+    await verifyDatabaseConnection();
 
-    // 2. Start HTTP & WebSocket server
-    server.listen(PORT, () => {
+    // 2. Ensure Super Admin credentials from .env exist & are in sync
+    await bootstrapSuperAdmin();
+
+    // 3. Ensure application settings exist
+    await bootstrapSettings();
+
+    // 5. Start HTTP & WebSocket server
+    server.listen(Number(PORT), '0.0.0.0', () => {
       console.log(`====================================================`);
       console.log(`  PRANOVA Healthcare Coordination API Engine        `);
       console.log(`  Mode: ${process.env.NODE_ENV || 'development'}    `);
-      console.log(`  Server running at: http://localhost:${PORT}       `);
+      console.log(`  Server running at: http://0.0.0.0:${PORT}          `);
       console.log(`  Healthcheck:       http://localhost:${PORT}/health`);
       console.log(`  Interactive API:   http://localhost:${PORT}/api-docs`);
       console.log(`  Socket.io Stream:  Online (Emergency alerts ready)`);
+      console.log(`  Super Admin:       ${config.admin.email}`);
       console.log(`====================================================`);
     });
   } catch (error) {

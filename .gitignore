@@ -4,9 +4,13 @@
 # ==============================================================================
 
 # ------------------------------------------------------------------------------
-# 1. LOCAL DATABASE ENGINE BINARY STORAGE
+# 1. DATABASE BACKUPS, LOCAL STORAGE & SECRETS
 # ------------------------------------------------------------------------------
+.env
+.env.local
+.env.*.local
 .pgdata/
+backup_*.json
 *.sqlite
 *.sqlite3
 *.db
@@ -43,5 +47,20 @@ pnpm-debug.log*
 Thumbs.db
 .idea/
 .vscode/
-*.swp
+.swp
 *.swo
+.playwright-mcp/
+
+# ------------------------------------------------------------------------------
+# 6. FILE UPLOADS & USER STORAGE
+# ------------------------------------------------------------------------------
+uploads/*
+!uploads/**/.gitkeep
+
+# ------------------------------------------------------------------------------
+# 7. MOBILE CLIENT APPLICATIONS (React Native / Expo Apps)
+# Excluded from git repository for Railway web admin & server deployment
+# (Local app configuration and development remains fully intact)
+# ------------------------------------------------------------------------------
+patient-app/
+care-manager-app/

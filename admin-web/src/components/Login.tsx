@@ -1,295 +1,208 @@
-import React, { useState } from 'react';
-import { useLogin, useNotify } from 'react-admin';
+import React, { useState, useEffect } from 'react';
+import { useLogin, useCheckAuth } from 'react-admin';
+import { useNavigate } from 'react-router-dom';
 import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  TextField,
-  Button,
-  CircularProgress,
-  InputAdornment,
-  IconButton,
-  Alert,
+  Box, Typography, TextField, Button, CircularProgress, InputAdornment, IconButton, Alert,
 } from '@mui/material';
-import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
-import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
-import Visibility from '@mui/icons-material/Visibility';
-import VisibilityOff from '@mui/icons-material/VisibilityOff';
-import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
-import VerifiedUserIcon from '@mui/icons-material/VerifiedUser';
+import Visibility from '@mui/icons-material/VisibilityOutlined';
+import VisibilityOff from '@mui/icons-material/VisibilityOffOutlined';
+import CrisisAlertOutlinedIcon from '@mui/icons-material/CrisisAlertOutlined';
+import EventAvailableOutlinedIcon from '@mui/icons-material/EventAvailableOutlined';
+import LocalShippingOutlinedIcon from '@mui/icons-material/LocalShippingOutlined';
+import { useBranding } from '../branding.js';
+import { BrandMark } from '../ui/BrandMark.js';
+import { color } from '../design/tokens.js';
+
+const CAPABILITIES = [
+  { icon: <CrisisAlertOutlinedIcon />, text: 'Emergency alerts with care-manager dispatch' },
+  { icon: <EventAvailableOutlinedIcon />, text: 'Appointments and video consultations' },
+  { icon: <LocalShippingOutlinedIcon />, text: 'Pharmacy orders and lab sample collection' },
+];
 
 export const CustomLogin: React.FC = () => {
+  const { branding } = useBranding();
+  const login = useLogin();
+  const checkAuth = useCheckAuth();
+  const navigate = useNavigate();
+  // Someone already signed in has no business on the sign-in screen: send them
+  // to the dashboard. `false` stops a failed check from logging out or
+  // notifying — on this page "not authenticated" is the normal case, not an
+  // error. Rendering is held until the check settles so the form never flashes.
+  const [checkingSession, setCheckingSession] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [errors, setErrors] = useState<{ email?: string; password?: string; form?: string }>({});
 
-  const login = useLogin();
-  const notify = useNotify();
+  useEffect(() => {
+    checkAuth({}, false)
+      .then(() => navigate('/', { replace: true }))
+      .catch(() => setCheckingSession(false));
+  }, [checkAuth, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
-      setErrorMsg('Please enter both your work email and password');
-      return;
-    }
+    const next: typeof errors = {};
+    if (!email.trim()) next.email = 'Enter your work email.';
+    else if (!/^\S+@\S+\.\S+$/.test(email.trim())) next.email = 'Enter a valid email address.';
+    if (!password) next.password = 'Enter your password.';
+    setErrors(next);
+    if (next.email || next.password) return;
 
     setLoading(true);
-    setErrorMsg(null);
-
     try {
-      await login({ username: email, password });
-      notify('Authentication successful', { type: 'success' });
+      await login({ username: email.trim(), password });
     } catch (err: any) {
-      const msg = err?.message || 'Authentication failed. Please verify your credentials.';
-      setErrorMsg(msg);
-      notify(msg, { type: 'error' });
-    } finally {
+      setErrors({ form: err?.message || 'Sign-in failed. Check your email and password and try again.' });
       setLoading(false);
     }
   };
 
-  return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'radial-gradient(ellipse at top, #0f172a 0%, #0b1120 100%)',
-        position: 'relative',
-        overflow: 'hidden',
-        p: 2,
-      }}
-    >
-      {/* Clinical Cyan / Teal Glow Accents */}
-      <Box
-        sx={{
-          position: 'absolute',
-          top: '12%',
-          left: '18%',
-          width: 420,
-          height: 420,
-          borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(2, 132, 199, 0.12) 0%, rgba(2, 132, 199, 0) 70%)',
-          filter: 'blur(50px)',
-          pointerEvents: 'none',
-        }}
-      />
-      <Box
-        sx={{
-          position: 'absolute',
-          bottom: '12%',
-          right: '18%',
-          width: 450,
-          height: 450,
-          borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(15, 118, 110, 0.15) 0%, rgba(15, 118, 110, 0) 70%)',
-          filter: 'blur(55px)',
-          pointerEvents: 'none',
-        }}
-      />
+  // Held only while the session check settles (a synchronous token read), so
+  // an authenticated visitor is redirected without ever seeing the form.
+  if (checkingSession) {
+    return <Box sx={{ minHeight: '100vh', bgcolor: color.canvas }} aria-busy="true" />;
+  }
 
-      <Card
+  return (
+    <Box sx={{ minHeight: '100vh', display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 5fr) minmax(0, 6fr)' }, bgcolor: color.canvas }}>
+      {/* Context panel */}
+      <Box
+        component="aside"
+        aria-label="About this console"
         sx={{
-          maxWidth: 440,
-          width: '100%',
-          borderRadius: 3.5,
-          backgroundColor: 'rgba(15, 23, 42, 0.92)',
-          backdropFilter: 'blur(20px)',
-          border: '1px solid rgba(255, 255, 255, 0.08)',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.05)',
-          zIndex: 1,
+          display: { xs: 'none', md: 'flex' },
+          flexDirection: 'column',
+          justifyContent: 'space-between',
+          p: { md: 5, lg: 7 },
+          bgcolor: color.primary,
+          color: '#FFFFFF',
+          position: 'relative',
+          overflow: 'hidden',
         }}
       >
-        <CardContent sx={{ p: { xs: 3.5, sm: 4.5 } }}>
-          {/* Clinical Hospital Brand Header */}
-          <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-            <Box
-              sx={{
-                width: 48,
-                height: 48,
-                borderRadius: 2.5,
-                bgcolor: 'rgba(2, 132, 199, 0.15)',
-                border: '1px solid rgba(2, 132, 199, 0.3)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                mr: 2,
-                color: '#38bdf8',
-              }}
-            >
-              <LocalHospitalIcon sx={{ fontSize: 28 }} />
-            </Box>
-            <Box>
-              <Typography
-                variant="h6"
-                sx={{
-                  fontWeight: 800,
-                  letterSpacing: '0.04em',
-                  color: '#ffffff',
-                  fontSize: '1.35rem',
-                  lineHeight: 1.1,
-                }}
-              >
-                PRANOVA
-              </Typography>
-              <Typography
-                variant="caption"
-                sx={{
-                  color: '#94a3b8',
-                  letterSpacing: '0.08em',
-                  textTransform: 'uppercase',
-                  fontWeight: 600,
-                  fontSize: '0.68rem',
-                }}
-              >
-                Healthcare Operations Console
-              </Typography>
-            </Box>
+        {/* Quiet cross-hatch texture, low contrast — structure, not decoration */}
+        <Box
+          aria-hidden
+          sx={{
+            position: 'absolute',
+            inset: 0,
+            opacity: 0.07,
+            backgroundImage:
+              'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)',
+            backgroundSize: '44px 44px',
+            maskImage: 'linear-gradient(to bottom, black, transparent 85%)',
+          }}
+        />
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, position: 'relative' }}>
+          {branding.app_logo ? (
+            <Box component="img" src={branding.app_logo} alt="" sx={{ height: 34, maxWidth: 160, objectFit: 'contain', bgcolor: '#fff', borderRadius: '8px', p: 0.5 }} />
+          ) : (
+            <BrandMark size={34} inverted />
+          )}
+          <Typography sx={{ fontWeight: 700, fontSize: '1.125rem', letterSpacing: '-0.01em' }}>{branding.app_name}</Typography>
+        </Box>
+
+        <Box sx={{ position: 'relative', maxWidth: 440 }}>
+          <Typography component="p" sx={{ fontSize: { md: '1.75rem', lg: '2rem' }, fontWeight: 600, lineHeight: 1.25, letterSpacing: '-0.02em' }}>
+            Coordinate care delivery from one console.
+          </Typography>
+          <Box component="ul" sx={{ listStyle: 'none', p: 0, m: 0, mt: 4, display: 'grid', gap: 2 }}>
+            {CAPABILITIES.map((c) => (
+              <Box component="li" key={c.text} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <Box aria-hidden sx={{ width: 32, height: 32, borderRadius: '8px', display: 'grid', placeItems: 'center', bgcolor: 'rgba(255,255,255,0.12)', '& svg': { fontSize: 18 } }}>
+                  {c.icon}
+                </Box>
+                <Typography sx={{ fontSize: '0.95rem', opacity: 0.92 }}>{c.text}</Typography>
+              </Box>
+            ))}
+          </Box>
+        </Box>
+
+        <Typography sx={{ position: 'relative', fontSize: '0.8125rem', opacity: 0.75 }}>
+          Authorized staff only. Every administrative change is recorded in the audit log.
+        </Typography>
+      </Box>
+
+      {/* Form */}
+      <Box component="main" sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', p: { xs: 3, sm: 5 } }}>
+        <Box sx={{ width: '100%', maxWidth: 380 }}>
+          <Box sx={{ display: { xs: 'flex', md: 'none' }, alignItems: 'center', gap: 1.25, mb: 5 }}>
+            {branding.app_logo ? (
+              <Box component="img" src={branding.app_logo} alt="" sx={{ height: 30, maxWidth: 140, objectFit: 'contain' }} />
+            ) : (
+              <BrandMark size={30} />
+            )}
+            <Typography sx={{ fontWeight: 700, fontSize: '1.05rem' }}>{branding.app_name}</Typography>
           </Box>
 
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="h6" sx={{ fontWeight: 700, color: '#f8fafc', mb: 0.5 }}>
-              Clinical Portal Access
-            </Typography>
-            <Typography variant="body2" sx={{ color: '#94a3b8', fontSize: '0.85rem' }}>
-              Authorized healthcare coordination and emergency dispatch system
-            </Typography>
-          </Box>
+          <Typography variant="h4" component="h1">Sign in</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75, mb: 3.5 }}>
+            Use your work email and password to open the {branding.app_tagline?.toLowerCase() || 'console'}.
+          </Typography>
 
-          {errorMsg && (
-            <Alert
-              severity="error"
-              sx={{
-                mb: 2.5,
-                borderRadius: 2,
-                bgcolor: 'rgba(239, 68, 68, 0.12)',
-                color: '#fca5a5',
-                border: '1px solid rgba(239, 68, 68, 0.25)',
-              }}
-            >
-              {errorMsg}
+          {errors.form && (
+            <Alert severity="error" sx={{ mb: 2.5 }} role="alert">
+              {errors.form}
             </Alert>
           )}
 
-          <form onSubmit={handleSubmit}>
-            <Box sx={{ mb: 2.5 }}>
-              <Typography variant="body2" sx={{ color: '#cbd5e1', mb: 0.8, fontWeight: 600, fontSize: '0.85rem' }}>
-                Operational Email
-              </Typography>
-              <TextField
-                fullWidth
-                variant="outlined"
-                placeholder="name@pranova.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                autoComplete="email"
-                disabled={loading}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <EmailOutlinedIcon sx={{ color: '#64748b' }} />
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    bgcolor: 'rgba(15, 23, 42, 0.6)',
-                    color: '#f8fafc',
-                    borderRadius: 2,
-                    fontSize: '0.9rem',
-                    '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.12)' },
-                    '&:hover fieldset': { borderColor: '#0284c7' },
-                    '&.Mui-focused fieldset': { borderColor: '#38bdf8' },
-                  },
-                }}
-              />
-            </Box>
-
-            <Box sx={{ mb: 3.5 }}>
-              <Typography variant="body2" sx={{ color: '#cbd5e1', mb: 0.8, fontWeight: 600, fontSize: '0.85rem' }}>
-                Secure Password
-              </Typography>
-              <TextField
-                fullWidth
-                type={showPassword ? 'text' : 'password'}
-                variant="outlined"
-                placeholder="••••••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                autoComplete="current-password"
-                disabled={loading}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <LockOutlinedIcon sx={{ color: '#64748b' }} />
-                    </InputAdornment>
-                  ),
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton
-                        onClick={() => setShowPassword(!showPassword)}
-                        edge="end"
-                        sx={{ color: '#64748b' }}
-                      >
-                        {showPassword ? <VisibilityOff /> : <Visibility />}
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                }}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    bgcolor: 'rgba(15, 23, 42, 0.6)',
-                    color: '#f8fafc',
-                    borderRadius: 2,
-                    fontSize: '0.9rem',
-                    '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.12)' },
-                    '&:hover fieldset': { borderColor: '#0284c7' },
-                    '&.Mui-focused fieldset': { borderColor: '#38bdf8' },
-                  },
-                }}
-              />
-            </Box>
-
-            <Button
+          <Box component="form" noValidate onSubmit={handleSubmit} sx={{ display: 'grid', gap: 2.25 }}>
+            <TextField
+              id="login-email"
+              label="Work email"
+              type="email"
+              autoComplete="email"
+              autoFocus
               fullWidth
-              type="submit"
-              variant="contained"
+              size="medium"
+              value={email}
+              onChange={(e) => { setEmail(e.target.value); if (errors.email) setErrors((x) => ({ ...x, email: undefined })); }}
+              error={!!errors.email}
+              helperText={errors.email}
               disabled={loading}
-              sx={{
-                py: 1.4,
-                borderRadius: 2,
-                fontSize: '0.95rem',
-                fontWeight: 700,
-                letterSpacing: '0.02em',
-                background: 'linear-gradient(135deg, #0284c7 0%, #0369a1 100%)',
-                color: '#ffffff',
-                boxShadow: '0 4px 14px 0 rgba(2, 132, 199, 0.35)',
-                '&:hover': {
-                  background: 'linear-gradient(135deg, #0369a1 0%, #075985 100%)',
-                },
+              placeholder="name@pranova.com"
+            />
+            <TextField
+              id="login-password"
+              label="Password"
+              type={showPassword ? 'text' : 'password'}
+              autoComplete="current-password"
+              fullWidth
+              size="medium"
+              value={password}
+              onChange={(e) => { setPassword(e.target.value); if (errors.password) setErrors((x) => ({ ...x, password: undefined })); }}
+              error={!!errors.password}
+              helperText={errors.password}
+              disabled={loading}
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton
+                      aria-label={showPassword ? 'Hide password' : 'Show password'}
+                      onClick={() => setShowPassword((s) => !s)}
+                      edge="end"
+                      size="small"
+                    >
+                      {showPassword ? <VisibilityOff fontSize="small" /> : <Visibility fontSize="small" />}
+                    </IconButton>
+                  </InputAdornment>
+                ),
               }}
-            >
-              {loading ? (
-                <CircularProgress size={24} sx={{ color: '#ffffff' }} />
-              ) : (
-                'Sign In to Console'
-              )}
+            />
+            <Button type="submit" variant="contained" size="large" fullWidth disabled={loading} sx={{ mt: 0.5, py: 1.25 }}>
+              {loading ? <CircularProgress size={22} sx={{ color: '#fff' }} aria-label="Signing in" /> : 'Sign in'}
             </Button>
-          </form>
-
-          {/* Clinical Compliance Footer */}
-          <Box sx={{ mt: 3.5, pt: 2.5, borderTop: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <VerifiedUserIcon sx={{ fontSize: 16, color: '#0f766e', mr: 1 }} />
-            <Typography variant="caption" sx={{ color: '#64748b', fontSize: '0.72rem', letterSpacing: '0.02em' }}>
-              HIPAA & NABH Compliant Clinical Coordination Environment
-            </Typography>
           </Box>
-        </CardContent>
-      </Card>
+
+          <Typography variant="caption" color="text.secondary" component="p" sx={{ mt: 4, display: { md: 'none' } }}>
+            Authorized staff only. Every administrative change is recorded in the audit log.
+          </Typography>
+        </Box>
+      </Box>
     </Box>
   );
 };
+
+export default CustomLogin;

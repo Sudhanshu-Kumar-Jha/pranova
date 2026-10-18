@@ -27,10 +27,10 @@ export class ProviderService {
       ...(search
         ? {
             OR: [
-              { name: { contains: search, mode: 'insensitive' } },
-              { city: { contains: search, mode: 'insensitive' } },
-              { phone: { contains: search, mode: 'insensitive' } },
-              { contactPerson: { contains: search, mode: 'insensitive' } },
+              { name: { contains: search } },
+              { city: { contains: search } },
+              { phone: { contains: search } },
+              { contactPerson: { contains: search } },
             ],
           }
         : {}),

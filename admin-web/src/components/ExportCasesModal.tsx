@@ -1,20 +1,8 @@
 import React, { useState } from 'react';
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  TextField,
-  Typography,
-  Box,
-  CircularProgress,
-  Alert,
-} from '@mui/material';
-import FileDownloadIcon from '@mui/icons-material/FileDownload';
-import SecurityIcon from '@mui/icons-material/Security';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Typography, Alert, useMediaQuery, Theme } from '@mui/material';
+import ShieldOutlinedIcon from '@mui/icons-material/ShieldOutlined';
 import { useNotify } from 'react-admin';
-import axios from 'axios';
+import { apiClient } from '../providers/dataProvider.js';
 
 interface ExportCasesModalProps {
   open: boolean;
@@ -26,53 +14,31 @@ export const ExportCasesModal: React.FC<ExportCasesModalProps> = ({ open, onClos
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const notify = useNotify();
+  const fullScreen = useMediaQuery((t: Theme) => t.breakpoints.down('sm'));
 
   const handleExport = async () => {
     if (!reason || reason.trim().length < 3) {
-      setError('Please provide a specific clinical or administrative reason for this export.');
+      setError('Give a specific reason for this export (at least 3 characters).');
       return;
     }
-
     setLoading(true);
     setError(null);
-
     try {
-      const token = localStorage.getItem('pranova_access_token');
-      const response = await axios.post(
-        'http://localhost:5000/api/v1/cases/export/excel',
-        { reason: reason.trim() },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          responseType: 'blob',
-        }
-      );
-
-      // Create download link from received binary blob
-      const blob = new Blob([response.data], {
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      });
+      const response = await apiClient.post('/cases/export/excel', { reason: reason.trim() }, { responseType: 'blob' });
+      const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute(
-        'download',
-        `PRANOVA_Cases_Export_${new Date().toISOString().slice(0, 10)}.xlsx`
-      );
+      link.setAttribute('download', `PRANOVA_Cases_Export_${new Date().toISOString().slice(0, 10)}.xlsx`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
-
-      notify('Cases exported successfully. Event recorded in immutable Audit Log.', {
-        type: 'success',
-      });
+      notify('Export downloaded. The reason was recorded in the audit log.', { type: 'success' });
       setReason('');
       onClose();
     } catch (err: any) {
-      const msg = err.response?.data?.message || err.message || 'Failed to generate Excel export';
+      const msg = err.response?.data?.message || err.message || 'The export could not be generated. Try again.';
       setError(msg);
       notify(msg, { type: 'error' });
     } finally {
@@ -81,56 +47,37 @@ export const ExportCasesModal: React.FC<ExportCasesModalProps> = ({ open, onClos
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1.5, pb: 1 }}>
-        <FileDownloadIcon sx={{ color: '#0284c7' }} />
-        <Typography variant="h6" sx={{ fontWeight: 700 }}>
-          Export Healthcare Cases to Excel
+    <Dialog open={open} onClose={loading ? undefined : onClose} maxWidth="sm" fullWidth fullScreen={fullScreen} aria-labelledby="export-title">
+      <DialogTitle id="export-title">
+        Export cases
+        <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5, fontWeight: 400 }}>
+          Downloads all cases as an Excel file.
         </Typography>
       </DialogTitle>
-
-      <DialogContent dividers>
-        <Box sx={{ mb: 2 }}>
-          <Alert severity="info" icon={<SecurityIcon />} sx={{ borderRadius: 2 }}>
-            <strong>Healthcare Compliance Requirement:</strong> Exporting protected healthcare information (PHI) requires an explicit reason. This download and its stated purpose will be recorded in the immutable Audit Log.
-          </Alert>
-        </Box>
-
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
-
+      <DialogContent>
+        <Alert severity="info" icon={<ShieldOutlinedIcon fontSize="small" />} sx={{ mb: 2.5 }}>
+          Case exports contain patient health information. Your reason is stored with this export in the audit log.
+        </Alert>
+        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
         <TextField
+          id="export-reason"
           autoFocus
-          label="Reason for Data Export *"
-          placeholder="e.g. Monthly clinical quality assurance and triage time audit"
+          required
+          label="Reason for export"
+          placeholder="For example: Monthly quality review of response times"
           multiline
-          rows={3}
+          minRows={3}
           value={reason}
-          onChange={(e) => setReason(e.target.value)}
+          onChange={(e) => { setReason(e.target.value); if (error) setError(null); }}
           disabled={loading}
           fullWidth
-          helperText="Minimum 3 characters required. Stored permanently for compliance."
+          helperText="At least 3 characters."
         />
       </DialogContent>
-
-      <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={onClose} disabled={loading} color="inherit">
-          Cancel
-        </Button>
-        <Button
-          onClick={handleExport}
-          variant="contained"
-          disabled={loading || !reason.trim()}
-          startIcon={loading ? <CircularProgress size={18} /> : <FileDownloadIcon />}
-          sx={{
-            bgcolor: '#0284c7',
-            '&:hover': { bgcolor: '#0369a1' },
-          }}
-        >
-          {loading ? 'Generating Excel...' : 'Authorize & Download (.xlsx)'}
+      <DialogActions>
+        <Button onClick={onClose} disabled={loading} color="inherit">Cancel</Button>
+        <Button onClick={handleExport} variant="contained" disabled={loading || !reason.trim()}>
+          {loading ? 'Preparing file…' : 'Download Excel file'}
         </Button>
       </DialogActions>
     </Dialog>

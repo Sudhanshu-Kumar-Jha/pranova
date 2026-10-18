@@ -1,7 +1,8 @@
 import { DataProvider } from 'react-admin';
 import axios, { AxiosInstance } from 'axios';
+import { API_URL } from '../config.js';
 
-const API_BASE_URL = 'http://localhost:5000/api/v1';
+const API_BASE_URL = API_URL;
 
 // Create dedicated Axios client with authorization interceptors
 export const apiClient: AxiosInstance = axios.create({
@@ -21,8 +22,20 @@ apiClient.interceptors.request.use((config) => {
 
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
+  async (error) => {
+    const config = error.config || {};
+    const status = error.response?.status;
+
+    // Transparently retry once on transient server/network errors (e.g. the
+    // embedded DB still warming up right after boot). Never retry auth/validation.
+    const isTransient = !error.response || [500, 502, 503, 504].includes(status);
+    if (isTransient && config && !config._retry) {
+      config._retry = true;
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      return apiClient(config);
+    }
+
+    if (status === 401) {
       localStorage.removeItem('pranova_access_token');
       localStorage.removeItem('pranova_refresh_token');
       localStorage.removeItem('pranova_user');

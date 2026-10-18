@@ -1,51 +1,25 @@
 import React from 'react';
-import {
-  Edit,
-  SimpleForm,
-  TextInput,
-  BooleanInput,
-  required,
-  email,
-} from 'react-admin';
-import { Grid, Typography, Divider } from '@mui/material';
+import { Edit, SimpleForm, useRecordContext } from 'react-admin';
+import { FormIntro } from '../../ui/FormSection.js';
+import { CareManagerFormFields } from './CareManagerForm.js';
+
+const name = (r: any) => r?.fullName || `${r?.firstName ?? ''} ${r?.lastName ?? ''}`.trim();
+
+const Title: React.FC = () => {
+  const r = useRecordContext();
+  return <span>{r ? `Edit ${name(r)}` : 'Edit care manager'}</span>;
+};
+
+const Intro: React.FC = () => {
+  const r = useRecordContext();
+  return <FormIntro title={r ? name(r) : 'Edit care manager'} />;
+};
 
 export const CareManagerEdit: React.FC = () => (
-  <Edit redirect="show">
-    <SimpleForm sx={{ maxWidth: 900 }}>
-      <Typography variant="h6" sx={{ fontWeight: 700, mb: 1, color: '#0f766e' }}>
-        Edit Care Manager Profile
-      </Typography>
-      <Divider sx={{ mb: 2.5, width: '100%' }} />
-
-      <Grid container spacing={2}>
-        <Grid item xs={12} sm={6}>
-          <TextInput source="firstName" label="First Name" validate={[required()]} fullWidth />
-        </Grid>
-        <Grid item xs={12} sm={6}>
-          <TextInput source="lastName" label="Last Name" validate={[required()]} fullWidth />
-        </Grid>
-        <Grid item xs={12} sm={6}>
-          <TextInput source="phone" label="Phone" validate={[required()]} fullWidth />
-        </Grid>
-        <Grid item xs={12} sm={6}>
-          <TextInput source="email" label="Official Email" validate={[email()]} fullWidth />
-        </Grid>
-        <Grid item xs={12} sm={6}>
-          <TextInput source="employeeCode" label="Employee Code" fullWidth />
-        </Grid>
-        <Grid item xs={12} sm={6}>
-          <TextInput source="licenseNumber" label="License Number" fullWidth />
-        </Grid>
-        <Grid item xs={12} sm={6}>
-          <TextInput source="specialization" label="Specialization" fullWidth />
-        </Grid>
-        <Grid item xs={12} sm={6}>
-          <TextInput source="assignedZone" label="Assigned Zone" fullWidth />
-        </Grid>
-        <Grid item xs={12}>
-          <BooleanInput source="isAvailable" label="Available for Dispatch" />
-        </Grid>
-      </Grid>
+  <Edit redirect="show" title={<Title />}>
+    <SimpleForm>
+      <Intro />
+      <CareManagerFormFields />
     </SimpleForm>
   </Edit>
 );

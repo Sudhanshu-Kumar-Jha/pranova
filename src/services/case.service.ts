@@ -3,6 +3,7 @@ import { prisma } from '../utils/prisma.js';
 import { ApiError } from '../utils/apiError.js';
 import { CreateCaseInput, AssignCaseInput, UpdateCaseStatusInput } from '../validators/case.validator.js';
 import { CaseQueryFilter } from '../types/query.types.js';
+import { getIO } from '../socket/index.js';
 
 export class CaseService {
   /**
@@ -17,23 +18,25 @@ export class CaseService {
     const priorityFilter = query.priority as CasePriority | undefined;
     const statusFilter = query.status as CaseStatus | undefined;
     const careManagerIdFilter = query.careManagerId as string | undefined;
+    const patientIdFilter = query.patientId as string | undefined;
 
     const where: Prisma.CaseWhereInput = {
+      ...(patientIdFilter ? { patientId: patientIdFilter } : {}),
       ...(priorityFilter ? { priority: priorityFilter } : {}),
       ...(statusFilter ? { status: statusFilter } : {}),
       ...(careManagerIdFilter ? { careManagerId: careManagerIdFilter } : {}),
       ...(search
         ? {
             OR: [
-              { caseNumber: { contains: search, mode: 'insensitive' } },
-              { title: { contains: search, mode: 'insensitive' } },
-              { description: { contains: search, mode: 'insensitive' } },
+              { caseNumber: { contains: search } },
+              { title: { contains: search } },
+              { description: { contains: search } },
               {
                 patient: {
                   patientProfile: {
                     OR: [
-                      { firstName: { contains: search, mode: 'insensitive' } },
-                      { lastName: { contains: search, mode: 'insensitive' } },
+                      { firstName: { contains: search } },
+                      { lastName: { contains: search } },
                     ],
                   },
                 },
@@ -57,6 +60,10 @@ export class CaseService {
             include: { careManagerProfile: true },
           },
           provider: true,
+          payments: {
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+          },
           _count: {
             select: { timeline: true },
           },
@@ -84,6 +91,11 @@ export class CaseService {
         : 'Unassigned',
       careManagerPhone: c.careManager?.phone,
       careManagerCode: c.careManager?.careManagerProfile?.employeeCode,
+      careManagerZone: c.careManager?.careManagerProfile?.assignedZone || null,
+      careManagerIsAvailable: c.careManager?.careManagerProfile?.isAvailable ?? null,
+      careManagerLatitude: c.careManager?.careManagerProfile?.currentLatitude || null,
+      careManagerLongitude: c.careManager?.careManagerProfile?.currentLongitude || null,
+      careManagerLastLocationUpdate: c.careManager?.careManagerProfile?.lastLocationUpdate || null,
       providerId: c.providerId,
       providerName: c.provider?.name || null,
       incidentAddress: c.incidentAddress,
@@ -91,6 +103,9 @@ export class CaseService {
       incidentLongitude: c.incidentLongitude,
       assignedAt: c.assignedAt,
       resolvedAt: c.resolvedAt,
+      paymentStatus: c.payments[0]?.status || (c.status === CaseStatus.PAID ? 'PAID' : c.status === CaseStatus.COMPLETED_AWAITING_PAYMENT ? 'PENDING' : 'UNBILLED'),
+      paymentAmount: c.payments[0]?.amount || null,
+      paymentTransactionId: c.payments[0]?.transactionId || null,
       timelineEventsCount: c._count.timeline,
       createdAt: c.createdAt,
       updatedAt: c.updatedAt,
@@ -118,6 +133,9 @@ export class CaseService {
           include: { careManagerProfile: true },
         },
         provider: true,
+        payments: {
+          orderBy: { createdAt: 'desc' },
+        },
         timeline: {
           orderBy: { createdAt: 'desc' },
           include: {
@@ -161,6 +179,8 @@ export class CaseService {
         oldStatus: entry.oldStatus,
         newStatus: entry.newStatus,
         notes: entry.notes,
+        locationLatitude: entry.locationLatitude,
+        locationLongitude: entry.locationLongitude,
         actorId: entry.actorId,
         actorRole: entry.actorRole,
         actorName,
@@ -187,6 +207,11 @@ export class CaseService {
       careManagerName,
       careManagerPhone: c.careManager?.phone,
       careManagerCode: c.careManager?.careManagerProfile?.employeeCode,
+      careManagerZone: c.careManager?.careManagerProfile?.assignedZone || null,
+      careManagerIsAvailable: c.careManager?.careManagerProfile?.isAvailable ?? null,
+      careManagerLatitude: c.careManager?.careManagerProfile?.currentLatitude || null,
+      careManagerLongitude: c.careManager?.careManagerProfile?.currentLongitude || null,
+      careManagerLastLocationUpdate: c.careManager?.careManagerProfile?.lastLocationUpdate || null,
       providerId: c.providerId,
       providerName: c.provider?.name || null,
       providerPhone: c.provider?.phone || null,
@@ -195,6 +220,10 @@ export class CaseService {
       incidentLongitude: c.incidentLongitude,
       assignedAt: c.assignedAt,
       resolvedAt: c.resolvedAt,
+      acknowledgedAt: c.acknowledgedAt,
+      acknowledgedById: c.acknowledgedById,
+      paymentStatus: c.payments[0]?.status || (c.status === CaseStatus.PAID ? 'PAID' : c.status === CaseStatus.COMPLETED_AWAITING_PAYMENT ? 'PENDING' : 'UNBILLED'),
+      payments: c.payments,
       timeline: formattedTimeline,
       createdAt: c.createdAt,
       updatedAt: c.updatedAt,
@@ -311,7 +340,30 @@ export class CaseService {
       });
     });
 
-    return this.getById(caseId);
+    const result = await this.getById(caseId);
+
+    // Section B.1: Real-time case:assigned socket event to Care Manager
+    try {
+      const io = getIO();
+      const assignmentPayload = {
+        caseId: result.id,
+        caseNumber: result.caseNumber,
+        title: result.title,
+        priority: result.priority,
+        status: result.status,
+        patientName: result.patientName,
+        incidentAddress: result.incidentAddress,
+        careManagerId: input.careManagerId,
+        assignedAt: result.assignedAt,
+      };
+      io.to(`care_manager_${input.careManagerId}`).emit('case:assigned', assignmentPayload);
+      io.to('care_managers').emit('case:assigned', assignmentPayload);
+      console.log(`[SOCKET] Emitted 'case:assigned' to care manager ${input.careManagerId} for Case ${result.caseNumber}`);
+    } catch (err: any) {
+      console.warn(`[SOCKET] Could not emit case:assigned: ${err.message}`);
+    }
+
+    return result;
   }
 
   /**
@@ -355,6 +407,75 @@ export class CaseService {
         },
       });
     });
+
+    const result = await this.getById(caseId);
+
+    // Section B.2: Real-time case:status_changed to Patient & Admin
+    try {
+      const io = getIO();
+      const statusPayload = {
+        caseId: result.id,
+        caseNumber: result.caseNumber,
+        oldStatus,
+        status: newStatus,
+        notes: input.notes,
+        updatedAt: new Date().toISOString(),
+      };
+      io.to(`patient_${targetCase.patientId}`).emit('case:status_changed', statusPayload);
+      io.to('admin_room').emit('case:status_changed', statusPayload);
+      console.log(`[SOCKET] Emitted 'case:status_changed' to patient ${targetCase.patientId} for Case ${result.caseNumber} -> ${newStatus}`);
+    } catch (err: any) {
+      console.warn(`[SOCKET] Could not emit case:status_changed: ${err.message}`);
+    }
+
+    return result;
+  }
+
+  /**
+   * Section B.4: Record Admin Acknowledgement of Emergency Alert
+   */
+  static async acknowledge(caseId: string, adminId?: string) {
+    const targetCase = await prisma.case.findUnique({
+      where: { id: caseId },
+    });
+
+    if (!targetCase) {
+      throw ApiError.notFound('Case not found');
+    }
+
+    const acknowledgedAt = new Date();
+
+    await prisma.$transaction(async (tx) => {
+      await tx.case.update({
+        where: { id: caseId },
+        data: {
+          acknowledgedAt,
+          acknowledgedById: adminId || null,
+        },
+      });
+
+      await tx.caseTimeline.create({
+        data: {
+          caseId,
+          actorId: adminId || null,
+          actorRole: Role.ADMIN,
+          action: 'EMERGENCY_ALERT_ACKNOWLEDGED',
+          notes: `Emergency alert formally acknowledged by administrator (${adminId || 'System'}).`,
+        },
+      });
+    });
+
+    // Notify connected admin consoles that this alert was acknowledged
+    try {
+      const io = getIO();
+      io.to('admin_room').emit('admin:emergency_acknowledged', {
+        caseId,
+        acknowledgedAt: acknowledgedAt.toISOString(),
+        acknowledgedById: adminId || null,
+      });
+    } catch (err: any) {
+      console.warn(`[SOCKET] Could not emit emergency acknowledgement: ${err.message}`);
+    }
 
     return this.getById(caseId);
   }

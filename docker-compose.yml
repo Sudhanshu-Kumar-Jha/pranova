@@ -1,0 +1,24 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: pranova_mysql
+    restart: unless-stopped
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-root}
+      MYSQL_DATABASE: ${DB_DATABASE:-pranova_db}
+      MYSQL_USER: ${DB_USERNAME:-pranova}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-pranova}
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - pranova_mysqldata:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pranova_mysqldata:
+    driver: local

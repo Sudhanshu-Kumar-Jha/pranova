@@ -5,9 +5,9 @@ import { prisma } from '../utils/prisma.js';
 export interface EmergencySosPayload {
   patientId?: string;
   patientPhone?: string;
-  incidentLatitude?: number;
-  incidentLongitude?: number;
-  incidentAddress?: string;
+  incidentLatitude?: number | null;
+  incidentLongitude?: number | null;
+  incidentAddress?: string | null;
   title?: string;
   description?: string;
 }
@@ -28,14 +28,6 @@ export const triggerEmergencySOS = async (io: SocketIOServer, payload: Emergency
     });
   }
 
-  // Fallback: If no patient specified, fetch the first registered patient or default patient
-  if (!patient) {
-    patient = await prisma.user.findFirst({
-      where: { role: Role.PATIENT },
-      include: { patientProfile: true },
-    });
-  }
-
   if (!patient) {
     throw new Error('No registered patient profile found in database to attach emergency SOS alert');
   }
@@ -48,13 +40,15 @@ export const triggerEmergencySOS = async (io: SocketIOServer, payload: Emergency
   const randomSuffix = Math.floor(1000 + Math.random() * 9000);
   const caseNumber = `PRN-${year}-${randomSuffix}`;
 
+  // Section A.4: NO fabricated locations or fallbacks.
+  // If GPS coordinates or address are not provided, save null.
   const incidentAddress =
-    payload.incidentAddress ||
+    payload.incidentAddress?.trim() ||
     patient.patientProfile?.primaryAddress ||
-    '104, Indiranagar 100ft Road, Bengaluru';
+    null;
 
-  const incidentLatitude = payload.incidentLatitude ?? patient.patientProfile?.latitude ?? 12.9784;
-  const incidentLongitude = payload.incidentLongitude ?? patient.patientProfile?.longitude ?? 77.6408;
+  const incidentLatitude = payload.incidentLatitude ?? patient.patientProfile?.latitude ?? null;
+  const incidentLongitude = payload.incidentLongitude ?? patient.patientProfile?.longitude ?? null;
 
   // 2. Transactionally create P1 Case + CaseTimeline
   const createdCase = await prisma.$transaction(async (tx) => {
@@ -91,6 +85,8 @@ export const triggerEmergencySOS = async (io: SocketIOServer, payload: Emergency
     return newCase;
   });
 
+  // Section A.3: Trim sensitive PHI (e.g. blood group removed from socket broadcast).
+  // Incident coordinates are null if no GPS fix is available.
   const emergencyAlertPayload = {
     caseId: createdCase.id,
     caseNumber: createdCase.caseNumber,
@@ -101,17 +97,15 @@ export const triggerEmergencySOS = async (io: SocketIOServer, payload: Emergency
     patientId: patient.id,
     patientName,
     patientPhone: patient.phone,
-    patientBloodGroup: patient.patientProfile?.bloodGroup || 'B+',
     incidentAddress: createdCase.incidentAddress,
     incidentLatitude: createdCase.incidentLatitude,
     incidentLongitude: createdCase.incidentLongitude,
     timestamp: new Date().toISOString(),
   };
 
-  // 3. Emit real-time emergency alert to Admin clients
-  console.log(`[SOCKET] Broadcasting 'admin:new_emergency' for Case ${createdCase.caseNumber}`);
+  // Section A.3: Emit real-time emergency alert ONLY to authenticated admin_room
+  console.log(`[SOCKET] Broadcasting 'admin:new_emergency' ONLY to 'admin_room' for Case ${createdCase.caseNumber}`);
   io.to('admin_room').emit('admin:new_emergency', emergencyAlertPayload);
-  io.emit('admin:new_emergency', emergencyAlertPayload);
 
   return emergencyAlertPayload;
 };

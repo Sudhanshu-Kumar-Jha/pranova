@@ -1,45 +1,33 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
-  List,
-  Datagrid,
-  TextField,
-  NumberField,
-  ShowButton,
-  EditButton,
-  SearchInput,
-  SelectInput,
-  FunctionField,
-  useUpdate,
-  useNotify,
-  useRefresh,
-  useRecordContext,
+  List, FunctionField, NumberField, SearchInput, SelectInput, useUpdate, useNotify, useRefresh, useRecordContext, Confirm,
 } from 'react-admin';
-import {
-  Chip,
-  Box,
-  Typography,
-  Button,
-  ButtonGroup,
-  Tooltip,
-} from '@mui/material';
-import PlayArrowIcon from '@mui/icons-material/PlayArrow';
-import PauseIcon from '@mui/icons-material/Pause';
-import BlockIcon from '@mui/icons-material/Block';
+import { Box, IconButton, Menu, MenuItem, ListItemIcon, ListItemText, Tooltip, Typography } from '@mui/material';
+import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
+import PlayCircleOutlineIcon from '@mui/icons-material/PlayCircleOutline';
+import PauseCircleOutlineIcon from '@mui/icons-material/PauseCircleOutline';
+import BlockOutlinedIcon from '@mui/icons-material/BlockOutlined';
+import LocalHospitalOutlinedIcon from '@mui/icons-material/LocalHospitalOutlined';
+import { ListPagination } from '../../components/ListPagination.js';
+import { ResponsiveDatagrid, RowEditButton } from '../../ui/ResponsiveDatagrid.js';
+import { StatusChip } from '../../ui/StatusChip.js';
+import { ListEmpty } from '../../ui/EmptyState.js';
+import { facts } from '../../ui/Panel.js';
+import { color } from '../../design/tokens.js';
+
+const TYPE_LABEL: Record<string, string> = {
+  HOSPITAL: 'Hospital',
+  LAB: 'Diagnostic lab',
+  CLINIC: 'Specialty clinic',
+  AMBULANCE: 'Ambulance service',
+  PHARMACY: 'Pharmacy',
+};
 
 const providerFilters = [
-  <SearchInput source="q" alwaysOn placeholder="Search by name, city, contact..." />,
+  <SearchInput key="q" source="q" alwaysOn placeholder="Search by name, city or contact" />,
+  <SelectInput key="type" source="type" label="Type" choices={Object.entries(TYPE_LABEL).map(([id, name]) => ({ id, name }))} />,
   <SelectInput
-    source="type"
-    label="Provider Type"
-    choices={[
-      { id: 'HOSPITAL', name: 'Hospital' },
-      { id: 'LAB', name: 'Diagnostic Lab' },
-      { id: 'CLINIC', name: 'Specialty Clinic' },
-      { id: 'AMBULANCE', name: 'Ambulance Fleet' },
-      { id: 'PHARMACY', name: 'Pharmacy' },
-    ]}
-  />,
-  <SelectInput
+    key="status"
     source="status"
     label="Status"
     choices={[
@@ -50,74 +38,73 @@ const providerFilters = [
   />,
 ];
 
-const StatusActionButtons: React.FC = () => {
+type ProviderStatus = 'ACTIVE' | 'PAUSED' | 'DEACTIVATED';
+
+const StatusMenu: React.FC = () => {
   const record = useRecordContext();
   const [update, { isPending }] = useUpdate();
   const notify = useNotify();
   const refresh = useRefresh();
-
+  const [anchor, setAnchor] = useState<HTMLElement | null>(null);
+  const [confirmDeactivate, setConfirmDeactivate] = useState(false);
   if (!record) return null;
 
-  const handleStatusChange = (newStatus: 'ACTIVE' | 'PAUSED' | 'DEACTIVATED') => {
+  const setStatus = (status: ProviderStatus) => {
+    setAnchor(null);
     update(
       'providers',
-      { id: record.id, data: { status: newStatus }, previousData: record },
+      { id: record.id, data: { status }, previousData: record },
       {
         onSuccess: () => {
-          notify(`Provider status updated to ${newStatus}`, { type: 'success' });
+          notify(`${record.name} is now ${status.toLowerCase()}`, { type: 'success' });
           refresh();
+          setConfirmDeactivate(false);
         },
         onError: (error: any) => {
-          notify(`Error updating status: ${error.message}`, { type: 'error' });
+          notify(`Status could not be changed: ${error.message}`, { type: 'error' });
+          setConfirmDeactivate(false);
         },
       }
     );
   };
 
+  const options: Array<{ status: ProviderStatus; label: string; icon: React.ReactNode }> = [
+    { status: 'ACTIVE' as ProviderStatus, label: 'Activate', icon: <PlayCircleOutlineIcon fontSize="small" /> },
+    { status: 'PAUSED' as ProviderStatus, label: 'Pause operations', icon: <PauseCircleOutlineIcon fontSize="small" /> },
+    { status: 'DEACTIVATED' as ProviderStatus, label: 'Deactivate', icon: <BlockOutlinedIcon fontSize="small" /> },
+  ].filter((o) => o.status !== record.status);
+
   return (
-    <ButtonGroup size="small" variant="outlined" disabled={isPending}>
-      {record.status !== 'ACTIVE' && (
-        <Tooltip title="Activate Provider">
-          <Button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleStatusChange('ACTIVE');
-            }}
-            sx={{ color: '#10b981', borderColor: 'rgba(16, 185, 129, 0.4)', px: 0.8 }}
+    <Box onClick={(e) => e.stopPropagation()}>
+      <Tooltip title="Change status">
+        <IconButton aria-label={`Change status of ${record.name}`} size="small" disabled={isPending} onClick={(e) => setAnchor(e.currentTarget)} sx={{ color: 'text.secondary' }}>
+          <MoreHorizIcon fontSize="small" />
+        </IconButton>
+      </Tooltip>
+      <Menu anchorEl={anchor} open={!!anchor} onClose={() => setAnchor(null)} anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} transformOrigin={{ vertical: 'top', horizontal: 'right' }}>
+        {options.map((o) => (
+          <MenuItem
+            key={o.status}
+            onClick={() => (o.status === 'DEACTIVATED' ? (setAnchor(null), setConfirmDeactivate(true)) : setStatus(o.status))}
+            sx={o.status === 'DEACTIVATED' ? { color: color.error } : undefined}
           >
-            <PlayArrowIcon fontSize="small" />
-          </Button>
-        </Tooltip>
-      )}
-
-      {record.status !== 'PAUSED' && (
-        <Tooltip title="Pause Operations">
-          <Button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleStatusChange('PAUSED');
-            }}
-            sx={{ color: '#f59e0b', borderColor: 'rgba(245, 158, 11, 0.4)', px: 0.8 }}
-          >
-            <PauseIcon fontSize="small" />
-          </Button>
-        </Tooltip>
-      )}
-
-      {record.status !== 'DEACTIVATED' && (
-        <Tooltip title="Deactivate Provider">
-          <Button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleStatusChange('DEACTIVATED');
-            }}
-            sx={{ color: '#ef4444', borderColor: 'rgba(239, 68, 68, 0.4)', px: 0.8 }}
-          >
-            <BlockIcon fontSize="small" />
-          </Button>
-        </Tooltip>
-      )}
-    </ButtonGroup>
+            <ListItemIcon sx={{ color: 'inherit' }}>{o.icon}</ListItemIcon>
+            <ListItemText primaryTypographyProps={{ fontSize: '0.875rem' }}>{o.label}</ListItemText>
+          </MenuItem>
+        ))}
+      </Menu>
+      <Confirm
+        isOpen={confirmDeactivate}
+        loading={isPending}
+        title={`Deactivate ${record.name}?`}
+        content="The provider will be marked as deactivated. You can reactivate it at any time from this menu."
+        confirm="Deactivate"
+        confirmColor="warning"
+        cancel="Cancel"
+        onConfirm={() => setStatus('DEACTIVATED')}
+        onClose={() => setConfirmDeactivate(false)}
+      />
+    </Box>
   );
 };
 
@@ -125,71 +112,49 @@ export const ProviderList: React.FC = () => (
   <List
     filters={providerFilters}
     sort={{ field: 'createdAt', order: 'DESC' }}
-    perPage={10}
+    perPage={25}
+    pagination={<ListPagination />}
+    empty={<ListEmpty icon={<LocalHospitalOutlinedIcon />} title="No providers yet" description="Add hospitals, labs, clinics and ambulance services so cases can be routed to them." />}
   >
-    <Datagrid rowClick="show" bulkActionButtons={false}>
+    <ResponsiveDatagrid
+      mobile={{
+        primaryText: (r: any) => r.name,
+        secondaryText: (r: any) => facts(TYPE_LABEL[r.type] ?? r.type, r.city),
+        tertiaryText: (r: any) => <StatusChip value={r.status} size="sm" />,
+      }}
+    >
       <FunctionField
-        label="Provider Facility"
-        render={(record: any) => (
-          <Box>
-            <Typography variant="body2" sx={{ fontWeight: 700, color: '#0284c7' }}>
-              {record.name}
-            </Typography>
-            <Typography variant="caption" sx={{ color: '#64748b' }}>
-              {record.city}, {record.state}
-            </Typography>
+        label="Provider"
+        sortBy="name"
+        render={(r: any) => (
+          <Box sx={{ minWidth: 0 }}>
+            <Typography variant="body2" sx={{ fontWeight: 600 }}>{r.name}</Typography>
+            <Typography variant="caption" color="text.secondary" component="div">{facts(r.city, r.state)}</Typography>
           </Box>
         )}
       />
+      <FunctionField label="Type" sortBy="type" render={(r: any) => <Typography variant="body2">{TYPE_LABEL[r.type] ?? r.type}</Typography>} />
       <FunctionField
-        label="Type"
-        render={(record: any) => {
-          const colors: Record<string, { bg: string; text: string }> = {
-            HOSPITAL: { bg: 'rgba(2, 132, 199, 0.1)', text: '#0284c7' },
-            LAB: { bg: 'rgba(139, 92, 246, 0.1)', text: '#7c3aed' },
-            CLINIC: { bg: 'rgba(15, 118, 110, 0.1)', text: '#0f766e' },
-            AMBULANCE: { bg: 'rgba(239, 68, 68, 0.1)', text: '#dc2626' },
-            PHARMACY: { bg: 'rgba(16, 185, 129, 0.1)', text: '#059669' },
-          };
-          const style = colors[record.type] || { bg: '#e2e8f0', text: '#475569' };
-          return (
-            <Chip
-              label={record.type}
-              size="small"
-              sx={{ bgcolor: style.bg, color: style.text, fontWeight: 700, fontSize: '0.75rem' }}
-            />
-          );
-        }}
+        label="Contact"
+        sortable={false}
+        render={(r: any) => (
+          <>
+            <Typography variant="body2">{r.contactPerson || '—'}</Typography>
+            <Typography variant="caption" color="text.secondary">{r.phone}</Typography>
+          </>
+        )}
       />
+      <NumberField source="rating" label="Rating" options={{ minimumFractionDigits: 1, maximumFractionDigits: 1 }} />
+      <FunctionField label="Status" sortBy="status" render={(r: any) => <StatusChip value={r.status} />} />
       <FunctionField
-        label="Operational Status"
-        render={(record: any) => {
-          const statusMap: Record<string, { bg: string; text: string; label: string }> = {
-            ACTIVE: { bg: 'rgba(16, 185, 129, 0.12)', text: '#059669', label: 'ACTIVE' },
-            PAUSED: { bg: 'rgba(245, 158, 11, 0.12)', text: '#d97706', label: 'PAUSED' },
-            DEACTIVATED: { bg: 'rgba(239, 68, 68, 0.12)', text: '#dc2626', label: 'DEACTIVATED' },
-          };
-          const conf = statusMap[record.status] || { bg: '#e2e8f0', text: '#64748b', label: record.status };
-          return (
-            <Chip
-              label={conf.label}
-              size="small"
-              sx={{ bgcolor: conf.bg, color: conf.text, fontWeight: 800, fontSize: '0.72rem' }}
-            />
-          );
-        }}
+        label=""
+        render={() => (
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
+            <RowEditButton />
+            <StatusMenu />
+          </Box>
+        )}
       />
-      <TextField source="phone" label="Phone" />
-      <TextField source="contactPerson" label="Contact Person" emptyText="—" />
-      <NumberField source="rating" label="Rating" options={{ minimumFractionDigits: 1 }} />
-      <FunctionField
-        label="Status Action"
-        render={() => <StatusActionButtons />}
-      />
-      <Box sx={{ display: 'flex', gap: 1 }}>
-        <ShowButton />
-        <EditButton />
-      </Box>
-    </Datagrid>
+    </ResponsiveDatagrid>
   </List>
 );

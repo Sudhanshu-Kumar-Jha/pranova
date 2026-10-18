@@ -10,8 +10,8 @@ const swaggerDefinition = {
     description: `
 **PRANOVA** is a headless, API-first Healthcare Coordination Engine powering:
 - **Admin Web Console** (React-Admin Web)
-- **Patient Mobile App** (Flutter Native)
-- **Care Manager Mobile App** (Flutter Native)
+- **Patient Mobile App** (React Native / Expo)
+- **Care Manager Mobile App** (React Native / Expo)
 
 ### Authentication
 Most endpoints require a valid JWT Bearer token in the \`Authorization\` header:
@@ -135,23 +135,6 @@ Use the **Authorize** button below to paste your Admin JWT token for interactive
           newStatus: { type: 'string', nullable: true },
           notes: { type: 'string', nullable: true },
           actorRole: { type: 'string', nullable: true },
-          createdAt: { type: 'string', format: 'date-time' },
-        },
-      },
-      AuditLog: {
-        type: 'object',
-        properties: {
-          id: { type: 'string', format: 'uuid' },
-          action: { type: 'string', example: 'ASSIGN_CASE' },
-          resource: { type: 'string', example: 'Case' },
-          resourceId: { type: 'string', nullable: true },
-          actorEmail: { type: 'string', nullable: true },
-          actorRole: { type: 'string', nullable: true },
-          endpoint: { type: 'string', example: '/api/v1/cases/xyz/assign' },
-          httpMethod: { type: 'string', example: 'PATCH' },
-          status: { type: 'string', example: 'SUCCESS' },
-          reason: { type: 'string', nullable: true },
-          ipAddress: { type: 'string', nullable: true },
           createdAt: { type: 'string', format: 'date-time' },
         },
       },

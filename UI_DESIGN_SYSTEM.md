@@ -84,3 +84,13 @@ The PRANOVA Admin Web Console is an enterprise-grade emergency healthcare orches
   - Centered dialog with 3px Crimson top border.
   - Live GPS coordinate display with mapping link.
   - Immediate Care Manager dispatch dropdown and single-click confirm CTA.
+
+---
+
+## 7. Dynamic Branding & Runtime Theme Config
+The primary clinical brand color (`clinical-primary`) is dynamic and runtime-configurable from Admin Branding Settings (`/admin/settings` -> `settings.primary_color`):
+- **Default Baseline**: `#0284c7` (Ocean Cyan) in Light Mode and `#4FB3AE` in Dark Mode.
+- **Dynamic Propagation**: Admin web console and mobile clients consume runtime config via `GET /api/v1/app/config` and `/api/v1/settings`.
+- **Theme Calculation**: The CSS variable `--color-primary` and MUI/Paper theme `palette.primary.main` are dynamically recalculated at runtime with derived hover (`primaryHover`), pressed (`primaryPressed`), and soft background (`primarySoft`) tint tokens.
+- **Mobile Client Integration**: Both `patient-app` and `care-manager-app` subscribe to runtime branding via `AppConfigProvider`, dynamically adapting primary buttons, active tabs, and navigation highlights without requiring app store updates.
+

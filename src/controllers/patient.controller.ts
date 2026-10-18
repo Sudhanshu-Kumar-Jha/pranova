@@ -2,6 +2,8 @@ import { Request, Response, NextFunction } from 'express';
 import { PatientService } from '../services/patient.service.js';
 import { ApiResponse } from '../utils/apiResponse.js';
 
+import { ApiError } from '../utils/apiError.js';
+
 export class PatientController {
   static async list(req: Request, res: Response, next: NextFunction) {
     try {
@@ -27,6 +29,32 @@ export class PatientController {
       const id = req.params.id as string;
       const patient = await PatientService.getById(id);
       return ApiResponse.success(res, 'Patient retrieved successfully', patient);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getMyProfile(req: Request, res: Response, next: NextFunction) {
+    try {
+      const patientId = req.user?.id;
+      if (!patientId) {
+        throw ApiError.unauthorized('Authentication required');
+      }
+      const patient = await PatientService.getById(patientId);
+      return ApiResponse.success(res, 'Patient profile retrieved successfully', patient);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async updateMyProfile(req: Request, res: Response, next: NextFunction) {
+    try {
+      const patientId = req.user?.id;
+      if (!patientId) {
+        throw ApiError.unauthorized('Authentication required');
+      }
+      const patient = await PatientService.update(patientId, req.body);
+      return ApiResponse.success(res, 'Profile updated successfully', patient);
     } catch (error) {
       next(error);
     }

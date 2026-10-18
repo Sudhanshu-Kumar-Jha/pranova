@@ -10,13 +10,18 @@ import {
 
 const router = Router();
 
+// Protect all administrative case management routes with ADMIN guard
+router.use(requireAdmin);
+
 /**
  * @openapi
  * /cases/sos:
  *   post:
- *     summary: Trigger P1 Emergency SOS and broadcast alert to connected Admin consoles
+ *     summary: Trigger P1 Emergency SOS and broadcast alert to connected Admin consoles (Admin Only)
  *     tags:
  *       - Emergency SOS & Cases
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -32,9 +37,6 @@ const router = Router();
  *               $ref: '#/components/schemas/ApiResponse'
  */
 router.post('/sos', CaseController.triggerSos);
-
-// Protect all administrative case management routes with ADMIN guard
-router.use(requireAdmin);
 
 /**
  * @openapi
@@ -231,5 +233,31 @@ router.patch('/:id/assign', validateRequest(assignCaseSchema), CaseController.as
  *         description: Status updated
  */
 router.patch('/:id/status', validateRequest(updateCaseStatusSchema), CaseController.updateStatus);
+
+/**
+ * @openapi
+ * /cases/{id}/acknowledge:
+ *   post:
+ *     summary: Acknowledge an active emergency alert by administrator
+ *     tags:
+ *       - Emergency SOS & Cases
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Emergency alert acknowledged
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ApiResponse'
+ */
+router.post('/:id/acknowledge', CaseController.acknowledge);
 
 export default router;

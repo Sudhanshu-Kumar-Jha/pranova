@@ -1,85 +1,68 @@
 import React from 'react';
-import {
-  List,
-  Datagrid,
-  TextField,
-  NumberField,
-  ShowButton,
-  EditButton,
-  SearchInput,
-  SelectInput,
-  FunctionField,
-} from 'react-admin';
-import { Chip, Box, Typography } from '@mui/material';
+import { List, FunctionField, NumberField, SearchInput, SelectInput, TextField } from 'react-admin';
+import BadgeOutlinedIcon from '@mui/icons-material/BadgeOutlined';
+import { ListPagination } from '../../components/ListPagination.js';
+import { ResponsiveDatagrid, RowEditButton } from '../../ui/ResponsiveDatagrid.js';
+import { ToneChip } from '../../ui/StatusChip.js';
+import { ListEmpty } from '../../ui/EmptyState.js';
+import { PersonCell, facts } from '../../ui/Panel.js';
+import { LocationLink } from '../../ui/LocationLink.js';
+import { color } from '../../design/tokens.js';
 
 const careManagerFilters = [
-  <SearchInput source="q" alwaysOn placeholder="Search by name, code or zone..." />,
+  <SearchInput key="q" source="q" alwaysOn placeholder="Search by name, employee code or zone" />,
   <SelectInput
+    key="isAvailable"
     source="isAvailable"
     label="Availability"
     choices={[
-      { id: 'true', name: 'Available On-Duty' },
-      { id: 'false', name: 'Off-Duty / Busy' },
+      { id: 'true', name: 'On duty' },
+      { id: 'false', name: 'Off duty' },
     ]}
   />,
 ];
+
+const fullName = (r: any) => r.fullName || `${r.firstName ?? ''} ${r.lastName ?? ''}`.trim();
+const Duty: React.FC<{ on: boolean; size?: 'sm' | 'md' }> = ({ on, size }) => (
+  <ToneChip tone={on ? 'success' : 'neutral'} size={size}>{on ? 'On duty' : 'Off duty'}</ToneChip>
+);
 
 export const CareManagerList: React.FC = () => (
   <List
     filters={careManagerFilters}
     sort={{ field: 'createdAt', order: 'DESC' }}
-    perPage={10}
+    perPage={25}
+    pagination={<ListPagination />}
+    empty={<ListEmpty icon={<BadgeOutlinedIcon />} title="No care managers yet" description="Add field care managers so cases and emergency alerts can be dispatched to them." />}
   >
-    <Datagrid rowClick="show" bulkActionButtons={false}>
-      <TextField source="employeeCode" label="Employee ID" sx={{ fontWeight: 700 }} />
+    <ResponsiveDatagrid
+      mobile={{
+        primaryText: (r: any) => fullName(r),
+        secondaryText: (r: any) => facts(r.employeeCode, r.assignedZone, r.currentLatitude != null ? 'GPS active' : 'No GPS'),
+        tertiaryText: (r: any) => <Duty on={r.isAvailable} size="sm" />,
+      }}
+    >
+      <FunctionField label="Care manager" sortable={false} render={(r: any) => <PersonCell name={fullName(r)} secondary={facts(r.employeeCode, r.phone)} />} />
+      <TextField source="specialization" label="Specialization" emptyText="General coordination" sortable={false} />
+      <TextField source="assignedZone" label="Zone" emptyText="Not assigned" sortable={false} />
+      <NumberField source="assignedCasesCount" label="Active cases" sortable={false} />
+      <FunctionField label="Availability" sortable={false} render={(r: any) => <Duty on={r.isAvailable} />} />
       <FunctionField
-        label="Care Manager"
-        render={(record: any) => (
-          <Box>
-            <Typography variant="body2" sx={{ fontWeight: 700, color: '#0f766e' }}>
-              {record.fullName || `${record.firstName} ${record.lastName}`}
-            </Typography>
-            <Typography variant="caption" sx={{ color: '#64748b' }}>
-              {record.phone}
-            </Typography>
-          </Box>
-        )}
-      />
-      <TextField source="specialization" label="Specialization" emptyText="General Coordination" />
-      <TextField source="assignedZone" label="Operational Zone" emptyText="Unassigned" />
-      <FunctionField
-        label="Status"
-        render={(record: any) =>
-          record.isAvailable ? (
-            <Chip
-              label="Available"
-              size="small"
-              sx={{
-                bgcolor: 'rgba(16, 185, 129, 0.12)',
-                color: '#059669',
-                fontWeight: 700,
-                fontSize: '0.75rem',
-              }}
+        label="Live location"
+        sortable={false}
+        render={(r: any) =>
+          r.currentLatitude != null && r.currentLongitude != null ? (
+            <LocationLink
+              label={`Live GPS - ${fullName(r)}`}
+              latitude={r.currentLatitude}
+              longitude={r.currentLongitude}
             />
           ) : (
-            <Chip
-              label="Off-Duty"
-              size="small"
-              sx={{
-                bgcolor: 'rgba(100, 116, 139, 0.12)',
-                color: '#64748b',
-                fontWeight: 600,
-                fontSize: '0.75rem',
-              }}
-            />
+            <span style={{ color: color.subtle }}>No GPS fix</span>
           )
         }
       />
-      <NumberField source="assignedCasesCount" label="Active Cases" />
-      <Box sx={{ display: 'flex', gap: 1 }}>
-        <ShowButton />
-        <EditButton />
-      </Box>
-    </Datagrid>
+      <RowEditButton />
+    </ResponsiveDatagrid>
   </List>
 );

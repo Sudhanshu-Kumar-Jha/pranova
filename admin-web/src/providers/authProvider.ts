@@ -1,7 +1,8 @@
 import { AuthProvider } from 'react-admin';
 import axios from 'axios';
+import { API_URL } from '../config.js';
 
-const API_BASE_URL = 'http://localhost:5000/api/v1';
+const API_BASE_URL = API_URL;
 
 // In-Memory Secure Token Store: Refresh token is strictly kept in-memory to prevent XSS localStorage persistence
 let inMemoryRefreshToken: string | null = null;

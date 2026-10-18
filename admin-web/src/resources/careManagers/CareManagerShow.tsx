@@ -1,93 +1,66 @@
 import React from 'react';
-import {
-  Show,
-  SimpleShowLayout,
-  TextField,
-  DateField,
-  FunctionField,
-} from 'react-admin';
-import { Card, CardContent, Typography, Grid, Divider, Chip } from '@mui/material';
+import { Show, EditButton, useRecordContext } from 'react-admin';
+import { Avatar, Box, Typography } from '@mui/material';
+import { Panel, DetailHeader, InfoGrid, InfoItem, SkeletonLines, initials, facts } from '../../ui/Panel.js';
+import { ToneChip } from '../../ui/StatusChip.js';
+import { formatDateTime, color } from '../../design/tokens.js';
+import { LocationLink } from '../../ui/LocationLink.js';
+
+const name = (r: any) => r?.fullName || `${r?.firstName ?? ''} ${r?.lastName ?? ''}`.trim();
+
+const CMTitle: React.FC = () => {
+  const r = useRecordContext();
+  return <span>{r ? name(r) : 'Care manager'}</span>;
+};
+
+const Content: React.FC = () => {
+  const r = useRecordContext();
+  if (!r) return <Box sx={{ p: 3 }}><SkeletonLines rows={6} /></Box>;
+  const hasLocation = r.currentLatitude != null && r.currentLongitude != null;
+
+  return (
+    <Box sx={{ maxWidth: 1200, mx: 'auto' }}>
+      <Box sx={{ bgcolor: 'background.paper', border: `1px solid ${color.line}`, borderRadius: '10px', mb: 3 }}>
+        <DetailHeader
+          avatar={<Avatar alt="" sx={{ width: 56, height: 56, bgcolor: color.primarySoft, color: color.primary, fontSize: '1.1rem' }}>{initials(name(r))}</Avatar>}
+          title={name(r)}
+          status={<ToneChip tone={r.isAvailable ? 'success' : 'neutral'}>{r.isAvailable ? 'On duty' : 'Off duty'}</ToneChip>}
+          subtitle={facts(r.employeeCode, r.specialization, r.assignedZone)}
+          actions={<EditButton variant="outlined" />}
+        />
+        <Box sx={{ px: { xs: 2, sm: 3 }, py: 2 }}>
+          <InfoGrid columns={4}>
+            <InfoItem label="Phone">{r.phone}</InfoItem>
+            <InfoItem label="Email">{r.email}</InfoItem>
+            <InfoItem label="Licence">{r.licenseNumber}</InfoItem>
+            <InfoItem label="Zone">{r.assignedZone}</InfoItem>
+          </InfoGrid>
+        </Box>
+      </Box>
+
+      <Panel title="Last known location" description="Reported by the Care Manager app when they update their availability.">
+        {hasLocation ? (
+          <InfoGrid columns={2}>
+            <InfoItem label="Position">
+              <LocationLink
+                label={`Last known location - ${name(r)}`}
+                latitude={r.currentLatitude}
+                longitude={r.currentLongitude}
+                emptyText="No location reported yet"
+              />
+            </InfoItem>
+            <InfoItem label="Updated">{r.lastLocationUpdate ? formatDateTime(r.lastLocationUpdate) : null}</InfoItem>
+          </InfoGrid>
+        ) : (
+          <Typography variant="body2" color="text.secondary">No location reported yet.</Typography>
+        )}
+      </Panel>
+    </Box>
+  );
+};
 
 export const CareManagerShow: React.FC = () => (
-  <Show>
-    <SimpleShowLayout sx={{ maxWidth: 1000 }}>
-      <Card sx={{ width: '100%', mb: 2, p: 1 }}>
-        <CardContent>
-          <Typography variant="h6" sx={{ fontWeight: 700, color: '#0f766e', mb: 2 }}>
-            Field Agent Profile & Credentials
-          </Typography>
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
-              <Typography variant="caption" sx={{ color: '#64748b' }}>Employee Code</Typography>
-              <TextField source="employeeCode" sx={{ display: 'block', fontWeight: 700 }} />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <Typography variant="caption" sx={{ color: '#64748b' }}>Duty Status</Typography>
-              <FunctionField
-                render={(record: any) =>
-                  record.isAvailable ? (
-                    <Chip
-                      label="Available for Dispatch"
-                      size="small"
-                      sx={{ bgcolor: 'rgba(16, 185, 129, 0.12)', color: '#059669', fontWeight: 700 }}
-                    />
-                  ) : (
-                    <Chip
-                      label="Off-Duty / Engaged"
-                      size="small"
-                      sx={{ bgcolor: 'rgba(100, 116, 139, 0.12)', color: '#64748b', fontWeight: 600 }}
-                    />
-                  )
-                }
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <Typography variant="caption" sx={{ color: '#64748b' }}>Full Name</Typography>
-              <TextField source="fullName" sx={{ display: 'block', fontWeight: 600 }} />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <Typography variant="caption" sx={{ color: '#64748b' }}>Contact Phone</Typography>
-              <TextField source="phone" sx={{ display: 'block', fontWeight: 600 }} />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <Typography variant="caption" sx={{ color: '#64748b' }}>Email</Typography>
-              <TextField source="email" emptyText="—" sx={{ display: 'block' }} />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <Typography variant="caption" sx={{ color: '#64748b' }}>License / Certification No.</Typography>
-              <TextField source="licenseNumber" emptyText="—" sx={{ display: 'block' }} />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <Typography variant="caption" sx={{ color: '#64748b' }}>Clinical Specialization</Typography>
-              <TextField source="specialization" emptyText="General Healthcare Coordination" sx={{ display: 'block' }} />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <Typography variant="caption" sx={{ color: '#64748b' }}>Assigned Zone</Typography>
-              <TextField source="assignedZone" emptyText="Unassigned" sx={{ display: 'block' }} />
-            </Grid>
-          </Grid>
-
-          <Divider sx={{ my: 3 }} />
-
-          <Typography variant="h6" sx={{ fontWeight: 700, color: '#0f766e', mb: 2 }}>
-            Field Telemetry & System Metadata
-          </Typography>
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={4}>
-              <Typography variant="caption" sx={{ color: '#64748b' }}>Current Latitude</Typography>
-              <TextField source="currentLatitude" emptyText="No telemetry" sx={{ display: 'block' }} />
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <Typography variant="caption" sx={{ color: '#64748b' }}>Current Longitude</Typography>
-              <TextField source="currentLongitude" emptyText="No telemetry" sx={{ display: 'block' }} />
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <Typography variant="caption" sx={{ color: '#64748b' }}>Last Location Ping</Typography>
-              <DateField source="lastLocationUpdate" emptyText="Never" showTime sx={{ display: 'block' }} />
-            </Grid>
-          </Grid>
-        </CardContent>
-      </Card>
-    </SimpleShowLayout>
+  <Show component="div" title={<CMTitle />} actions={false}>
+    <Content />
   </Show>
 );

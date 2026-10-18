@@ -1,60 +1,217 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap');
+/* PRANOVA admin — base layer. Component styling lives in theme.ts. */
 
-* {
-  margin: 0;
-  padding: 0;
+*,
+*::before,
+*::after {
   box-sizing: border-box;
 }
 
-:root {
-  --font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+html {
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
-  font-family: var(--font-family);
-  background-color: #0b1120;
-  color: #f1f5f9;
+  margin: 0;
+  font-family: 'Public Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  background-color: #f4f7f8;
+  color: #13212f;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
-/* Custom Scrollbar */
+/* Visible, consistent keyboard focus for anything not styled by MUI. */
+:focus-visible {
+  outline: 2px solid #0b6e6e;
+  outline-offset: 2px;
+}
+
+/* Quiet scrollbars that match the light surfaces. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #c9d4d8 transparent;
+}
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
 }
-
-::-webkit-scrollbar-track {
-  background: #0f172a;
-}
-
 ::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 4px;
+  background: #c9d4d8;
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: content-box;
 }
-
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: #a9b7bd;
+  background-clip: content-box;
+  border: 3px solid transparent;
 }
 
-/* Clinical Emergency Pulse Animation */
+/* Tabular figures wherever numbers are compared. */
+.num {
+  font-variant-numeric: tabular-nums;
+}
+/* Dates and amounts in tables stay on one line. */
+.RaDatagrid-rowCell .num,
+.MuiTableCell-root .num {
+  white-space: nowrap;
+}
+
+/* One subtle entrance for routed content — answers navigation, nothing more. */
+@keyframes pnv-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.RaLayout-content > * {
+  animation: pnv-enter 180ms cubic-bezier(0.2, 0, 0, 1) both;
+}
+
+/* Critical (P1) indicator pulse — the only ambient motion in the product. */
 @keyframes emergencyPulse {
   0% {
-    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7);
+    box-shadow: 0 0 0 0 rgba(192, 58, 43, 0.55);
   }
   70% {
-    box-shadow: 0 0 0 10px rgba(220, 38, 38, 0);
+    box-shadow: 0 0 0 8px rgba(192, 58, 43, 0);
   }
   100% {
-    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0);
+    box-shadow: 0 0 0 0 rgba(192, 58, 43, 0);
   }
 }
-
 .pulse-emergency {
   animation: emergencyPulse 2s infinite;
 }
 
-.font-mono {
-  font-family: var(--font-mono);
+/* Normalise vertical rhythm of React-Admin inputs inside forms so text,
+   number and select fields align on one baseline; grid gaps own spacing. */
+.RaSimpleForm-form .MuiFormControl-root,
+.pnv-form-section .MuiFormControl-root {
+  margin-top: 0;
+  margin-bottom: 0;
+  width: 100%;
+}
+.RaSimpleForm-form .MuiFormControlLabel-root {
+  margin-left: 0;
+}
+
+/* Never let wide content push the page sideways or trap scrollbars. */
+.RaLayout-root {
+  min-width: 0 !important;
+  width: 100% !important;
+  max-width: 100vw !important;
+  overflow-x: hidden !important;
+}
+
+.RaLayout-appFrame {
+  min-width: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.RaLayout-contentWithSidebar,
+.RaLayout-content {
+  min-width: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.RaLayout-content {
+  padding-bottom: 80px !important;
+}
+
+/* Comfortable touch targets (~44px) on touch screens; desktop density unchanged. */
+@media (pointer: coarse) {
+  .MuiButton-root {
+    min-height: 44px;
+  }
+  .MuiIconButton-root {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ---------------- Navigation Sidebar Scrolling & Polish ---------------- */
+/* Ensure the sidebar always scrolls smoothly and independently, never hides overflowing items,
+   never chains scroll events to the main page content, and stays responsive at all zoom levels (70%, 75%, 80%, 100%). */
+.RaSidebar-root .MuiDrawer-paper,
+.MuiDrawer-modal .MuiDrawer-paper,
+.RaSidebar-paper {
+  overflow: hidden !important;
+  padding-bottom: 0 !important;
+}
+
+.RaSidebar-fixed {
+  top: 61px !important;
+  width: 252px !important;
+  max-width: 252px !important;
+  box-sizing: border-box !important;
+  height: calc(100vh - 61px) !important;
+  height: calc(100dvh - 61px) !important;
+  max-height: calc(100vh - 61px) !important;
+  max-height: calc(100dvh - 61px) !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  overscroll-behavior: contain !important;
+  overscroll-behavior-y: contain !important;
+  -webkit-overflow-scrolling: touch !important;
+  padding-bottom: 80px !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: #cbd5e1 transparent !important;
+}
+
+@media (max-width: 599.95px) {
+  .RaSidebar-fixed {
+    top: 57px !important;
+    height: calc(100vh - 57px) !important;
+    height: calc(100dvh - 57px) !important;
+    max-height: calc(100vh - 57px) !important;
+    max-height: calc(100dvh - 57px) !important;
+    padding-bottom: 80px !important;
+  }
+}
+
+/* Custom visible scrollbar for the navigation sidebar */
+.RaSidebar-fixed::-webkit-scrollbar,
+.RaMenu-root::-webkit-scrollbar {
+  display: block !important;
+  width: 6px !important;
+}
+
+.RaSidebar-fixed::-webkit-scrollbar-track,
+.RaMenu-root::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+.RaSidebar-fixed::-webkit-scrollbar-thumb,
+.RaMenu-root::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1 !important;
+  border-radius: 4px !important;
+}
+
+.RaSidebar-fixed::-webkit-scrollbar-thumb:hover,
+.RaMenu-root::-webkit-scrollbar-thumb:hover {
+  background-color: #94a3b8 !important;
+}
+
+.RaMenu-root {
+  overflow-x: hidden !important;
+  overscroll-behavior: contain !important;
+  padding-bottom: 16px !important;
 }

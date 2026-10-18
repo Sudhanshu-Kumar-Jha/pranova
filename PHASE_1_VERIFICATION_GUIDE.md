@@ -11,9 +11,9 @@
 PRANOVA is a strictly headless, API-first Healthcare Coordination Platform. During Phase 1, the centralized core backend and the operational administrative console have been constructed. 
 
 ### Hard Constraints Strictly Enforced:
-1. **No WebViews:** The Admin Web Console is an independent Single Page Application built with React 18, React-Admin v5, and Vite. Mobile apps will be built strictly as native Flutter apps consuming the same REST/WebSocket APIs.
+1. **No WebViews:** The Admin Web Console is an independent Single Page Application built with React 18, React-Admin v5, and Vite. Mobile apps are built strictly as native React Native (Expo) apps consuming the same REST/WebSocket APIs.
 2. **Strict Platform Separation:** Administrative endpoints under `/api/v1/admin/*`, `/api/v1/audit-logs`, and operational CRUD are isolated and guarded by JWT RBAC (`ADMIN` role requirement).
-3. **Locked Tech Stack:** Node.js (v22.8.0), Express 5 with TypeScript (strict mode), PostgreSQL, Prisma ORM v6, Zod, Socket.io, and `xlsx`.
+3. **Locked Tech Stack:** Node.js (v22.8.0), Express 5 with TypeScript (strict mode), MySQL 8 / MariaDB (port 3306), Prisma ORM v6, Zod, Socket.io, and `xlsx`.
 4. **Relational Integrity & Immutability:** Strict foreign keys and cascading rules. Audit logs and case timeline events are strictly immutable—no `UPDATE` or `DELETE` endpoints exist for compliance logs.
 
 ---
@@ -23,14 +23,14 @@ PRANOVA is a strictly headless, API-first Healthcare Coordination Platform. Duri
 Follow these steps to run and verify the entire Phase 1 platform locally.
 
 ### Step A: Prerequisites & Environment
-Ensure PostgreSQL is running locally and credentials match [.env](file:///d:/PRANOVA/.env):
+Ensure MySQL is running locally and credentials match [.env](file:///d:/PRANOVA/.env):
 ```env
 PORT=5000
-NODE_ENV=development
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/pranova_db?schema=public"
-JWT_ACCESS_SECRET="pranova_super_secret_access_jwt_key_2026_secure"
-JWT_REFRESH_SECRET="pranova_super_secret_refresh_jwt_key_2026_secure"
-JWT_ACCESS_EXPIRES_IN="15m"
+APP_ENV=development
+DATABASE_URL="mysql://root:@127.0.0.1:3306/pranova_db"
+JWT_SECRET="pranova_super_secret_jwt_access_token_key_2026_healthcare"
+JWT_REFRESH_SECRET="pranova_super_secret_jwt_refresh_token_key_2026_healthcare"
+JWT_EXPIRES_IN="1d"
 JWT_REFRESH_EXPIRES_IN="7d"
 CORS_ORIGIN="http://localhost:5173,http://localhost:3000"
 ```
@@ -196,7 +196,7 @@ In the Admin Web Console:
   - Handles client connections and admin room subscriptions (`admin:join`).
 - **Emergency SOS Event Handler** ([`src/socket/emergency.handler.ts`](file:///d:/PRANOVA/src/socket/emergency.handler.ts)):
   - Listens for `emergency:sos` from mobile clients or triage services.
-  - Provisions a `P1 EMERGENCY` case and `CaseTimeline` entry in PostgreSQL.
+  - Provisions a `P1 EMERGENCY` case and `CaseTimeline` entry in MySQL.
   - Broadcasts `admin:new_emergency` to all connected Admin consoles in real time.
 - **REST SOS Endpoint** (`POST /api/v1/cases/sos` in [`src/routes/case.routes.ts`](file:///d:/PRANOVA/src/routes/case.routes.ts)):
   - Facilitates SOS triggers via HTTP REST while triggering the same Socket.io broadcast.
@@ -320,7 +320,7 @@ npm run build
 
 Phase 1 has fulfilled all architectural criteria:
 - [x] Headless Express + TypeScript REST engine.
-- [x] Relational schema and migrations on PostgreSQL via Prisma.
+- [x] Relational schema and migrations on MySQL via Prisma.
 - [x] Strict platform separation and JWT RBAC security.
 - [x] Real-time emergency Socket.io pipeline with Web Audio chime.
 - [x] Operational React-Admin v5 console with Ocean Cyan aesthetic.
