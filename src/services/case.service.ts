@@ -1,6 +1,7 @@
 import { CasePriority, CaseStatus, Role, Prisma } from '@prisma/client';
 import { prisma } from '../utils/prisma.js';
 import { ApiError } from '../utils/apiError.js';
+import { ConsentService } from './consent.service.js';
 import { CreateCaseInput, AssignCaseInput, UpdateCaseStatusInput } from '../validators/case.validator.js';
 import { CaseQueryFilter } from '../types/query.types.js';
 import { getIO } from '../socket/index.js';
@@ -236,11 +237,40 @@ export class CaseService {
   static async create(input: CreateCaseInput, actorId?: string, actorRole?: Role) {
     const patient = await prisma.user.findFirst({
       where: { id: input.patientId, role: Role.PATIENT },
+      include: { patientProfile: true },
     });
 
     if (!patient) {
       throw ApiError.notFound('Patient not found');
     }
+
+    // A case registered in the console (phone intake, walk-in) rarely carries
+    // coordinates. Rather than leave dispatch blind, fall back to the
+    // patient's own device position when it is recent — never to the
+    // registered address, which may be a different city entirely.
+    const LIVE_POSITION_MAX_AGE_MS = 15 * 60_000;
+    const lastFixAgeMs = patient.patientProfile?.lastLocationUpdate
+      ? Date.now() - new Date(patient.patientProfile.lastLocationUpdate).getTime()
+      : null;
+    const canUseDevicePosition =
+      input.incidentLatitude == null &&
+      input.incidentLongitude == null &&
+      patient.patientProfile?.currentLatitude != null &&
+      patient.patientProfile?.currentLongitude != null &&
+      lastFixAgeMs != null &&
+      lastFixAgeMs <= LIVE_POSITION_MAX_AGE_MS;
+
+    const incidentLatitude = canUseDevicePosition
+      ? (patient.patientProfile?.currentLatitude as number)
+      : (input.incidentLatitude ?? null);
+    const incidentLongitude = canUseDevicePosition
+      ? (patient.patientProfile?.currentLongitude as number)
+      : (input.incidentLongitude ?? null);
+    const locationProvenance = canUseDevicePosition
+      ? `Location: patient's last known device position, ${Math.round((lastFixAgeMs as number) / 60_000)} minute(s) old.`
+      : incidentLatitude != null
+        ? 'Location: supplied at intake.'
+        : 'Location: not supplied at intake and no recent device position on file.';
 
     const year = new Date().getFullYear();
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
@@ -258,8 +288,8 @@ export class CaseService {
           triggerSource: input.triggerSource,
           providerId: input.providerId,
           incidentAddress: input.incidentAddress,
-          incidentLatitude: input.incidentLatitude,
-          incidentLongitude: input.incidentLongitude,
+          incidentLatitude,
+          incidentLongitude,
           metadata: input.metadata || Prisma.JsonNull,
         },
       });
@@ -272,12 +302,28 @@ export class CaseService {
           actorRole: actorRole || Role.ADMIN,
           action: 'CASE_CREATED',
           newStatus: CaseStatus.OPEN,
-          notes: `Case initialized with priority ${input.priority} via ${input.triggerSource}`,
+          notes: `Case initialized with priority ${input.priority} via ${input.triggerSource}
+${locationProvenance}`,
         },
       });
 
       return newCase;
     });
+
+    // Raising a case opens a time-boxed location-sharing window for the
+    // response team, recorded as a Consent row the patient can see and revoke.
+    // It is deliberately outside the transaction: a consent write must never
+    // roll back a created case.
+    try {
+      await ConsentService.grantCaseLocationConsent({
+        patientId: input.patientId,
+        caseId: createdCase.id,
+        caseNumber: createdCase.caseNumber,
+        careManagerId: null,
+      });
+    } catch (err: any) {
+      console.warn(`[CONSENT] Could not open location sharing for case ${createdCase.caseNumber}: ${err.message}`);
+    }
 
     return this.getById(createdCase.id);
   }
@@ -341,6 +387,19 @@ export class CaseService {
     });
 
     const result = await this.getById(caseId);
+
+    // The assigned care manager is who actually needs the patient's position
+    // and records, so the sharing window is extended to them by name.
+    try {
+      await ConsentService.grantCaseLocationConsent({
+        patientId: result.patientId,
+        caseId: result.id,
+        caseNumber: result.caseNumber,
+        careManagerId: input.careManagerId,
+      });
+    } catch (err: any) {
+      console.warn(`[CONSENT] Could not grant location sharing to care manager ${input.careManagerId}: ${err.message}`);
+    }
 
     // Section B.1: Real-time case:assigned socket event to Care Manager
     try {
@@ -407,6 +466,22 @@ export class CaseService {
         },
       });
     });
+
+    // The emergency is over, so stop sharing the patient's position rather
+    // than leaving the window open until it expires on its own.
+    const SHARING_ENDING_STATUSES: CaseStatus[] = [
+      CaseStatus.COMPLETED_AWAITING_PAYMENT,
+      CaseStatus.PAID,
+      CaseStatus.RESOLVED,
+      CaseStatus.CANCELLED,
+    ];
+    if (SHARING_ENDING_STATUSES.includes(newStatus)) {
+      try {
+        await ConsentService.revokeCaseConsents(caseId);
+      } catch (err: any) {
+        console.warn(`[CONSENT] Could not close location sharing for case ${caseId}: ${err.message}`);
+      }
+    }
 
     const result = await this.getById(caseId);
 

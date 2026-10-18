@@ -60,6 +60,20 @@ export class PatientController {
     }
   }
 
+  /** Live device position from the patient app. Telemetry only. */
+  static async updateMyLocation(req: Request, res: Response, next: NextFunction) {
+    try {
+      const patientId = req.user?.id;
+      if (!patientId) {
+        throw ApiError.unauthorized('Authentication required');
+      }
+      const position = await PatientService.updateMyLocation(patientId, req.body);
+      return ApiResponse.success(res, 'Live location updated', position);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async create(req: Request, res: Response, next: NextFunction) {
     try {
       const patient = await PatientService.create(req.body);

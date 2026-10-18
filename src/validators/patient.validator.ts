@@ -15,6 +15,8 @@ export const createPatientSchema = z.object({
   city: z.string().optional().nullable(),
   state: z.string().optional().nullable(),
   pincode: z.string().optional().nullable(),
+  latitude: z.number().optional().nullable(),
+  longitude: z.number().optional().nullable(),
   emergencyContactName: z.string().optional().nullable(),
   emergencyContactPhone: z.string().optional().nullable(),
   medicalHistory: z.record(z.string(), z.unknown()).optional().nullable(),
@@ -22,5 +24,21 @@ export const createPatientSchema = z.object({
 
 export const updatePatientSchema = createPatientSchema.partial();
 
+/**
+ * Live device position pushed by the patient app (`PATCH /app/location`).
+ *
+ * This is telemetry, not the registered address: it updates
+ * `currentLatitude` / `currentLongitude` / `lastLocationUpdate` and never
+ * touches `primaryAddress` or the delivery coordinates. Coordinates are
+ * range-checked so a malformed sensor reading cannot land a dispatch pin in
+ * the ocean.
+ */
+export const updateMyLocationSchema = z.object({
+  latitude: z.number().min(-90, 'Latitude out of range').max(90, 'Latitude out of range'),
+  longitude: z.number().min(-180, 'Longitude out of range').max(180, 'Longitude out of range'),
+  accuracy: z.number().nonnegative().optional().nullable(),
+});
+
 export type CreatePatientInput = z.infer<typeof createPatientSchema>;
 export type UpdatePatientInput = z.infer<typeof updatePatientSchema>;
+export type UpdateMyLocationInput = z.infer<typeof updateMyLocationSchema>;

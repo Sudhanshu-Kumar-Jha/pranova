@@ -10,6 +10,7 @@ import { StatusChip, PriorityChip, ToneChip } from '../../ui/StatusChip.js';
 import { StatusWorkflow } from '../../ui/StatusWorkflow.js';
 import { EmptyState } from '../../ui/EmptyState.js';
 import { LocationLink } from '../../ui/LocationLink.js';
+import { PatientLivePosition } from './PatientLivePosition.js';
 import { formatDateTime, humanize, color } from '../../design/tokens.js';
 
 // Faithful to the original console: any unresolved case can be marked resolved.
@@ -123,6 +124,9 @@ const Content: React.FC = () => {
                   longitude={r.incidentLongitude}
                   emptyText="No location recorded"
                 />
+              </InfoItem>
+              <InfoItem label="Patient live position" full>
+                <PatientLivePosition caseId={r.id as string} status={r.status as string} />
               </InfoItem>
               <InfoItem label="Facility">{r.providerName}</InfoItem>
               <InfoItem label="Facility phone">{r.providerPhone}</InfoItem>

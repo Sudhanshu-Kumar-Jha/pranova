@@ -355,3 +355,47 @@ Key behaviors: video rooms provisioned on tele-consult booking; order totals com
 - **Scope Status:** **SCOPE FROZEN FOR CLINICAL PILOT OPERATIONS.**
 
 
+
+## 3J. Live patient location — consent-gated, case-scoped (2026-10-18)
+**Reported symptom:** cases for a patient registered in New Delhi were pinned to New Delhi instead of where the patient actually was; "live location" never appeared for admin or care manager.
+
+**Root causes (two, both server-side):**
+1. `src/socket/emergency.handler.ts` resolved the incident location as `payload -> patientProfile.latitude/longitude -> null`, i.e. it silently fell back to the **registered address coordinates**. The patient app was sending a real GPS fix, but any failure to obtain one produced a confident Delhi pin.
+2. The same handler then **wrote the incident location back onto the registered address** (`patientProfile.latitude/longitude/primaryAddress`), so an SOS corrupted the delivery address the patient had typed.
+
+**Architecture now (see `.agents/skills/pranova-platform/SKILL.md` §5B):**
+- `PatientProfile` gained `currentLatitude` / `currentLongitude` / `lastLocationUpdate` — the **live device position**, mirroring `CareManagerProfile`. `latitude`/`longitude` remain the **registered address** coordinates for delivery and are never used for dispatch or overwritten by a case.
+- `PATCH /app/location` (patient surface, range-validated) is the only writer of the live position.
+- Incident location resolves **live fix -> last known (<=15 min) -> null**, never the registered address. The case timeline and the `admin:new_emergency` payload carry `locationSource: LIVE | LAST_KNOWN | NONE`. `CaseService.create` applies the same fallback for console-registered cases.
+- **Permission model:** raising a case calls `ConsentService.grantCaseLocationConsent` (scope `case:<id>`, 12h); assigning a care manager extends it to them by name; any post-care status (`COMPLETED_AWAITING_PAYMENT`, `PAID`, `RESOLVED`, `CANCELLED`) calls `revokeCaseConsents`. The patient sees and can revoke these rows in the app, so "shared during an emergency, not otherwise" is enforced by data, not by UI.
+- **Reads:** `GET /cases/:id/patient-location` (admin) and `GET /cm/cases/:id/patient-location` (care manager), both through `PatientLocationService.getForCase`, which requires the case to be active, the care manager to be the assigned one, and (for care managers) unexpired consent. Each read appends a throttled `PATIENT_LOCATION_VIEWED` entry to the case timeline.
+- **Live movement** is pushed as `patient:location` to `admin_room` and `care_manager_<id>` only, and only while the patient has an open case.
+
+**Clients:**
+- `patient-app`: `src/api/location.ts`, `src/providers/LiveLocationProvider.tsx` (reports every ~60s **only** while a case is open and the app is foregrounded — no background tracking), and `LocationSharingBanner` on Home so the patient always sees that sharing is on and why.
+- `care-manager-app`: case detail gained a **Patient live location** card (Live/Last-known, fix age, sharing expiry, "Navigate to patient"), rendered only while the case is open; a 403 renders the server's message.
+- `admin-web`: `resources/cases/PatientLivePosition.tsx` on the case detail (auto-refresh every 45s while active, via `LocationLink`, no raw coordinates), and the emergency dialog now warns when a pin is stale or missing.
+
+**CM app UI cleanup (user-reported):** removed the "This device" diagnostics card (API base URL, local-notification availability, alert counter) and the raw-coordinate readout from Profile; reworked the case-detail records block from "Medical Documents (DPDP Guard)" / "Consent Locked" to plain production copy ("Patient records", "Shared until HH:MM", "Records open once the patient confirms sharing in their app").
+
+**Verification status:** `care-manager-app` and `patient-app` both `tsc --noEmit` clean. Backend typecheck and `prisma db push` are **pending a Prisma client regeneration**, which fails with `EPERM` while `npm run dev` holds `query_engine-windows.dll.node`. Stop the dev server, then run `npm run prisma:generate && npm run prisma:push`. Production applies the three new columns automatically on next deploy (`start-production.js` runs `prisma db push`).
+
+## 3K. REGRESSION FOUND DURING THIS WORK — audit trail removed
+The `AuditLog` model, `audit.middleware.ts` (`auditLogger`), `auditLog.service.ts`, `auditLog.controller.ts`, `auditLog.routes.ts` and the admin-web `auditLogs` resource are **all absent from the current tree** (confirmed against `HEAD` too, so it is committed). Only `DocumentAccessLog` remains, which covers document reads only.
+Consequences: no platform-wide mutation audit; `/api/v1/audit-logs` is gone, so the console's Audit Logs screen no longer exists; the Excel export's mandatory justification is written into the spreadsheet but **no longer recorded anywhere queryable**; and the login screen's HIPAA/NABH compliance claims no longer have an audit trail behind them. `prisma db push` on the next production boot will also attempt to **drop the existing `audit_logs` table** (101+ rows at last count) or fail the deploy. This contradicts the hard rule in `AGENTS.md` / the platform skill that `AuditLog` is append-only and mandatory. **Not restored in this change** — flagged for a decision.
+
+## 3L. App launch experience: icons, native splash, Expo SDK 58 (2026-10-18)
+**Reported symptom:** opening either app from the launcher showed a blank white screen instead of a branded splash; no proper app icon.
+
+**Root cause:** neither app had an `assets/` directory at all. `app.json` had no `icon`, an `adaptiveIcon` with only a `backgroundColor` (no `foregroundImage`), and a legacy `splash` block with a background colour but **no image**. As of `expo-splash-screen@58` a plugin with no image generates a *transparent* Android splash drawable — so the launch was literally a blank screen. There was also no `preventAutoHideAsync`/`hideAsync` handoff, leaving a white gap between the native splash and the first JS frame.
+
+**Fixed:**
+- **`src/scripts/generate-app-assets.mjs`** — generates the full asset set for both apps from the administrator's brand mark (fetched from `GET /app/config`, or a PNG path argument). Pure Node (zlib only): PNG decode/encode, bilinear scaling, alpha compositing, glyph extraction and trimming — no image toolchain added as a dependency. Produces `icon.png` (1024, opaque, iOS-safe), `adaptive-icon.png` (1024, inside the Android 66% safe zone), `monochrome-icon.png` (Android 13+ themed icons), `splash-icon.png` (512, transparent) and `favicon.png`. Re-run after any branding change.
+- **`app.json` (both apps)** rewritten against the `vtms-app` reference pattern: `icon`, `android.adaptiveIcon.foregroundImage` + `monochromeImage`, the `expo-splash-screen` plugin with `image` / `imageWidth` / `resizeMode` / `backgroundColor` and a `dark` variant, root and per-platform `backgroundColor`, `userInterfaceStyle: light` (the UI is light-only), `edgeToEdgeEnabled`, `predictiveBackGestureEnabled`, `web.favicon`. The legacy top-level `splash` key was removed.
+- **`src/nativeSplash.ts` (both apps)** — `holdNativeSplash()` runs at module scope in the root layout (`preventAutoHideAsync` + fade options); `app/index.tsx` releases it from `onLayout`, so the native splash hands over only once the branded splash has painted. A 3s failsafe in the root layout releases it regardless, so a deep link that skips the splash route cannot leave the app stuck.
+- **Expo SDK 57 → 58** for both apps: `expo ^58.0.14`, React Native **0.88.0**, React **19.3.0** (SDK 58 released 2026-10-15), aligned with `npx expo install --fix`.
+- **`eas.json` added to both apps** (development / preview APK / production app-bundle, with the production API URLs as build env).
+
+**Also fixed — builds were impossible:** the root `.gitignore` excluded `patient-app/` and `care-manager-app/` **entirely** (0 files tracked in git). EAS Build uploads what git tracks, so no app could have been built and the new assets would never have reached a binary. Replaced with targeted ignores (`node_modules/`, `.expo/`, `dist/`, `android/`, `ios/`, `*.log`) so app source is versioned while build output stays out.
+
+**Note on platform behaviour:** Android 12+ system splash screens show an **icon only** — the app name and tagline cannot appear there. That text lives on the JS splash (`app/index.tsx`), which reads it from the server config, and the handoff above makes the two look continuous. **Expo Go always shows its own icon and splash**, so these assets only appear in a real build (`npx expo run:android` or `eas build`).

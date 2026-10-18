@@ -17,7 +17,7 @@ import { PaymentController } from '../controllers/payment.controller.js';
 import { bookAppointmentSchema, cancelAppointmentSchema } from '../validators/appointment.validator.js';
 import { placeOrderSchema } from '../validators/order.validator.js';
 import { bookLabTestSchema } from '../validators/diagnostic.validator.js';
-import { updatePatientSchema } from '../validators/patient.validator.js';
+import { updatePatientSchema, updateMyLocationSchema } from '../validators/patient.validator.js';
 import { uploadDocumentSchema } from '../validators/document.validator.js';
 import { grantConsentSchema, revokeConsentSchema } from '../validators/consent.validator.js';
 import { createPaymentOrderSchema, mockCheckoutSchema } from '../validators/payment.validator.js';
@@ -115,6 +115,33 @@ router.post('/sos', sosRateLimiter, (req: Request, res: Response, next: NextFunc
  */
 router.get('/profile', PatientController.getMyProfile);
 router.patch('/profile', validateRequest(updatePatientSchema), PatientController.updateMyProfile);
+
+/**
+ * @openapi
+ * /app/location:
+ *   patch:
+ *     summary: Report my live device position (Patient App)
+ *     description: >
+ *       Telemetry only. Updates the patient's last known position
+ *       (currentLatitude / currentLongitude / lastLocationUpdate) and never the
+ *       registered address or its delivery coordinates. Dispatch uses this
+ *       position when an emergency arrives without a fresh fix.
+ *     tags: [App - Profile]
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [latitude, longitude]
+ *             properties:
+ *               latitude: { type: number, example: 12.9352 }
+ *               longitude: { type: number, example: 77.6245 }
+ *               accuracy: { type: number, example: 18.4 }
+ *     responses: { 200: { description: Live location updated } }
+ */
+router.patch('/location', validateRequest(updateMyLocationSchema), PatientController.updateMyLocation);
 
 // ---------------- Discovery / catalog ----------------
 

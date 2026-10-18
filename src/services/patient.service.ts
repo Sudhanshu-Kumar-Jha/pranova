@@ -1,8 +1,13 @@
-import { Role, UserStatus, Prisma } from '@prisma/client';
+import { Role, UserStatus, Prisma, CaseStatus } from '@prisma/client';
 import { prisma } from '../utils/prisma.js';
 import { ApiError } from '../utils/apiError.js';
-import { CreatePatientInput, UpdatePatientInput } from '../validators/patient.validator.js';
+import {
+  CreatePatientInput,
+  UpdatePatientInput,
+  UpdateMyLocationInput,
+} from '../validators/patient.validator.js';
 import { PatientQueryFilter } from '../types/query.types.js';
+import { getIO } from '../socket/index.js';
 
 export class PatientService {
   /**
@@ -67,6 +72,9 @@ export class PatientService {
       pincode: user.patientProfile?.pincode,
       latitude: user.patientProfile?.latitude,
       longitude: user.patientProfile?.longitude,
+      currentLatitude: user.patientProfile?.currentLatitude,
+      currentLongitude: user.patientProfile?.currentLongitude,
+      lastLocationUpdate: user.patientProfile?.lastLocationUpdate,
       emergencyContactName: user.patientProfile?.emergencyContactName,
       emergencyContactPhone: user.patientProfile?.emergencyContactPhone,
       medicalHistory: user.patientProfile?.medicalHistory,
@@ -119,6 +127,9 @@ export class PatientService {
       pincode: user.patientProfile.pincode,
       latitude: user.patientProfile.latitude,
       longitude: user.patientProfile.longitude,
+      currentLatitude: user.patientProfile.currentLatitude,
+      currentLongitude: user.patientProfile.currentLongitude,
+      lastLocationUpdate: user.patientProfile.lastLocationUpdate,
       emergencyContactName: user.patientProfile.emergencyContactName,
       emergencyContactPhone: user.patientProfile.emergencyContactPhone,
       medicalHistory: user.patientProfile.medicalHistory,
@@ -163,6 +174,8 @@ export class PatientService {
           city: input.city,
           state: input.state,
           pincode: input.pincode,
+          latitude: input.latitude || null,
+          longitude: input.longitude || null,
           emergencyContactName: input.emergencyContactName,
           emergencyContactPhone: input.emergencyContactPhone,
           medicalHistory: input.medicalHistory || Prisma.JsonNull,
@@ -211,6 +224,8 @@ export class PatientService {
           city: input.city || undefined,
           state: input.state || undefined,
           pincode: input.pincode || undefined,
+          latitude: input.latitude !== undefined ? input.latitude : undefined,
+          longitude: input.longitude !== undefined ? input.longitude : undefined,
           emergencyContactName: input.emergencyContactName || undefined,
           emergencyContactPhone: input.emergencyContactPhone || undefined,
           medicalHistory: input.medicalHistory !== undefined ? (input.medicalHistory || Prisma.JsonNull) : undefined,
@@ -226,6 +241,8 @@ export class PatientService {
           city: input.city || null,
           state: input.state || null,
           pincode: input.pincode || null,
+          latitude: input.latitude || null,
+          longitude: input.longitude || null,
           emergencyContactName: input.emergencyContactName || null,
           emergencyContactPhone: input.emergencyContactPhone || null,
           medicalHistory: input.medicalHistory || Prisma.JsonNull,
@@ -239,6 +256,73 @@ export class PatientService {
   /**
    * Delete Patient
    */
+  /**
+   * Record the patient's live device position (`PATCH /app/location`).
+   *
+   * Deliberately narrow: it writes only the three telemetry columns and never
+   * the registered address or its coordinates. A patient who registered in
+   * Delhi and is now in Bengaluru must dispatch to Bengaluru, while pharmacy
+   * delivery still goes to the address they typed.
+   */
+  static async updateMyLocation(userId: string, input: UpdateMyLocationInput) {
+    const profile = await prisma.patientProfile.findUnique({ where: { userId } });
+    if (!profile) {
+      throw ApiError.notFound('Patient profile not found');
+    }
+
+    const updated = await prisma.patientProfile.update({
+      where: { userId },
+      data: {
+        currentLatitude: input.latitude,
+        currentLongitude: input.longitude,
+        lastLocationUpdate: new Date(),
+      },
+      select: {
+        currentLatitude: true,
+        currentLongitude: true,
+        lastLocationUpdate: true,
+      },
+    });
+
+    // While an emergency is open, the response team should watch the patient
+    // move rather than re-poll. The position is pushed only to the rooms that
+    // are already entitled to it: the admin console, and the care manager this
+    // case is assigned to. A patient with no active case is never broadcast.
+    const activeCases = await prisma.case.findMany({
+      where: {
+        patientId: userId,
+        status: { in: [CaseStatus.OPEN, CaseStatus.ASSIGNED, CaseStatus.IN_PROGRESS] },
+      },
+      select: { id: true, caseNumber: true, careManagerId: true },
+    });
+
+    if (activeCases.length > 0) {
+      try {
+        const io = getIO();
+        for (const activeCase of activeCases) {
+          const payload = {
+            caseId: activeCase.id,
+            caseNumber: activeCase.caseNumber,
+            patientId: userId,
+            latitude: input.latitude,
+            longitude: input.longitude,
+            accuracy: input.accuracy ?? null,
+            updatedAt: updated.lastLocationUpdate,
+          };
+          io.to('admin_room').emit('patient:location', payload);
+          if (activeCase.careManagerId) {
+            io.to(`care_manager_${activeCase.careManagerId}`).emit('patient:location', payload);
+          }
+        }
+      } catch (err: any) {
+        // Telemetry is stored either way; only the live push is lost.
+        console.warn(`[SOCKET] Could not emit patient:location: ${err.message}`);
+      }
+    }
+
+    return updated;
+  }
+
   static async delete(id: string) {
     const user = await prisma.user.findFirst({
       where: { id, role: Role.PATIENT },

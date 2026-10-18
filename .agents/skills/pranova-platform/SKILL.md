@@ -104,5 +104,38 @@ unimplemented on purpose: no surface exposes a device-token endpoint, so alertin
 - The console has its own spec and skill: `admin-web/AGENTS.md` and `admin-web/.agents/skills/admin-web/SKILL.md`.
 - Only real backend data. No mock rows, placeholder stats, or hardcoded IDs in any screen.
 
+## 5B. Patient location: registered address vs live position (read this before touching location)
+Two different things live on `PatientProfile`, and conflating them caused a real dispatch bug
+(a patient registered in Delhi had emergencies pinned to Delhi while they were in Bengaluru):
+- **`latitude` / `longitude`** — coordinates of the **registered address** (`primaryAddress`). Used for
+  pharmacy delivery. **Never** used as an incident or dispatch location, and never overwritten by a case.
+- **`currentLatitude` / `currentLongitude` / `lastLocationUpdate`** — the **live device position**,
+  mirroring the same trio on `CareManagerProfile`. This is the only thing dispatch may drive to.
+
+Rules:
+- `PATCH /app/location` (patient surface, `updateMyLocationSchema`) is the only writer of the live
+  position. It writes the three telemetry columns and nothing else.
+- The patient app reports a position **only while a case is open and the app is in the foreground**
+  (`patient-app/src/providers/LiveLocationProvider.tsx`, ~60s). There is no background tracking, so
+  the platform holds no location trail outside an emergency. The patient always sees it happening
+  (`LocationSharingBanner`) — sharing a patient cannot see is not consent.
+- `POST /app/sos` carries the live fix; `src/socket/emergency.handler.ts` resolves the incident
+  location as **live fix -> last known position (<=15 min) -> null**, never the registered address,
+  and stamps the timeline plus the `admin:new_emergency` payload with
+  `locationSource: LIVE | LAST_KNOWN | NONE` so a dispatcher knows how trustworthy the pin is.
+  `CaseService.create` applies the same fallback for cases registered in the console.
+- **Access is consent-gated and case-scoped.** Raising a case calls
+  `ConsentService.grantCaseLocationConsent` (scope `case:<id>`, 12h) and assigning a care manager
+  extends it to them by name; any post-care status (`COMPLETED_AWAITING_PAYMENT`, `PAID`, `RESOLVED`,
+  `CANCELLED`) calls `revokeCaseConsents`, so sharing stops with the emergency. The patient sees and
+  can revoke these rows in the app like any other consent.
+- Reads go through `PatientLocationService.getForCase`, served at `GET /cases/:id/patient-location`
+  (admin) and `GET /cm/cases/:id/patient-location` (care manager). It enforces: case active, care
+  manager actually assigned, and (for a care manager) unexpired consent. Admins skip only the consent
+  check, exactly as `requireConsent` already does for documents. Every read appends a throttled
+  `PATIENT_LOCATION_VIEWED` entry to the case timeline.
+- Live movement is pushed as `patient:location` to `admin_room` and `care_manager_<id>` only, and only
+  for patients with an open case.
+
 ## 6. Real-time
 Socket.IO runs on the API port. Patients emit `patient_emergency`; the server writes an audit record and broadcasts `emergency_alert` to admin and care-manager sessions. The admin listener is `admin-web/src/components/EmergencyAlertListener.tsx`.

@@ -3,6 +3,9 @@ import { prisma } from '../utils/prisma.js';
 import { ApiError } from '../utils/apiError.js';
 import { GrantConsentInput } from '../validators/consent.validator.js';
 
+/** Marker that ties a Consent row to the case that created it. */
+export const CASE_CONSENT_SCOPE_PREFIX = 'case:';
+
 export class ConsentService {
   /**
    * Grant consent from a patient to a Care Manager or Provider
@@ -56,6 +59,80 @@ export class ConsentService {
     });
 
     return consent;
+  }
+
+  /**
+   * Emergency, case-scoped consent.
+   *
+   * The patient does not fill in a consent form in the middle of a medical
+   * emergency, so raising a case grants the response team time-boxed access to
+   * that patient's live position and clinical documents, recorded as a real
+   * Consent row: visible to the patient in the app, revocable by them, and
+   * expiring on its own. Access is tied to the case through `scope`, so
+   * closing the case ends it (see `revokeCaseConsents`).
+   *
+   * Unlike `grantConsent`, this never revokes the patient's other consents —
+   * a dispatch must not silently cancel a consent the patient granted
+   * deliberately for something else.
+   */
+  static async grantCaseLocationConsent(params: {
+    patientId: string;
+    caseId: string;
+    caseNumber: string;
+    careManagerId?: string | null;
+    durationHours?: number;
+  }) {
+    const { patientId, caseId, caseNumber, careManagerId = null } = params;
+    const durationHours = params.durationHours ?? 12;
+    const expiresAt = new Date(Date.now() + durationHours * 60 * 60 * 1000);
+    const scope = CASE_CONSENT_SCOPE_PREFIX + caseId;
+
+    // One active record per (case, recipient): re-granting extends it rather
+    // than stacking duplicates on a case that gets reassigned.
+    const existing = await prisma.consent.findFirst({
+      where: {
+        patientId,
+        careManagerId,
+        scope,
+        status: ConsentStatus.GRANTED,
+      },
+    });
+
+    if (existing) {
+      return prisma.consent.update({
+        where: { id: existing.id },
+        data: { expiresAt },
+      });
+    }
+
+    return prisma.consent.create({
+      data: {
+        patientId,
+        careManagerId,
+        purpose: `Emergency response for case ${caseNumber}: live location and clinical records shared with the assigned response team`,
+        scope,
+        status: ConsentStatus.GRANTED,
+        expiresAt,
+      },
+    });
+  }
+
+  /**
+   * Ends every consent this case granted. Called when a case reaches a
+   * terminal state: the emergency is over, so the live-location window closes
+   * instead of lingering until its expiry.
+   */
+  static async revokeCaseConsents(caseId: string) {
+    return prisma.consent.updateMany({
+      where: {
+        scope: CASE_CONSENT_SCOPE_PREFIX + caseId,
+        status: ConsentStatus.GRANTED,
+      },
+      data: {
+        status: ConsentStatus.REVOKED,
+        revokedAt: new Date(),
+      },
+    });
   }
 
   /**

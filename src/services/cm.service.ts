@@ -1,6 +1,7 @@
 import { CaseStatus, Role, Prisma } from '@prisma/client';
 import { prisma } from '../utils/prisma.js';
 import { ApiError } from '../utils/apiError.js';
+import { ConsentService } from './consent.service.js';
 import { getPagination, getSort } from '../utils/pagination.js';
 import { BasePaginationQuery } from '../types/query.types.js';
 import { CmUpdateCaseStatusInput, CmAvailabilityInput } from '../validators/cm.validator.js';
@@ -124,6 +125,22 @@ export class CmService {
 
       return updatedCase;
     });
+
+    // The emergency is over, so close the patient's location-sharing window
+    // instead of leaving it open until it expires.
+    const SHARING_ENDING_STATUSES: CaseStatus[] = [
+      CaseStatus.COMPLETED_AWAITING_PAYMENT,
+      CaseStatus.PAID,
+      CaseStatus.RESOLVED,
+      CaseStatus.CANCELLED,
+    ];
+    if (SHARING_ENDING_STATUSES.includes(input.status)) {
+      try {
+        await ConsentService.revokeCaseConsents(id);
+      } catch (err: any) {
+        console.warn(`[CONSENT] Could not close location sharing for case ${id}: ${err.message}`);
+      }
+    }
 
     // Section B.2: Real-time case:status_changed notification to Patient room
     try {

@@ -53,6 +53,8 @@ export const verifyOtpSchema = z.object({
   city: z.string().optional().nullable(),
   state: z.string().optional().nullable(),
   pincode: z.string().optional().nullable(),
+  latitude: z.number().optional().nullable(),
+  longitude: z.number().optional().nullable(),
   gender: z.string().optional().nullable(),
   bloodGroup: z.string().optional().nullable(),
   emergencyContactName: z.string().optional().nullable(),

@@ -64,3 +64,13 @@ uploads/*
 # ------------------------------------------------------------------------------
 patient-app/
 care-manager-app/
+
+# ------------------------------------------------------------------------------
+# 8. USER GUIDES & GENERATED DOCUMENTATION
+# ------------------------------------------------------------------------------
+docs/PRANOVA_User_Guide.pdf
+docs/USER_GUIDE.md
+*User_Guide*
+*user_guide*
+*USER_GUIDE*
+

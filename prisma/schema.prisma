@@ -207,8 +207,16 @@ model PatientProfile {
   city                  String?
   state                 String?
   pincode               String?
+  // Coordinates of the REGISTERED address above (used for pharmacy delivery).
   latitude              Float?
   longitude             Float?
+  // Last position reported by the patient's device. Mirrors the pattern on
+  // CareManagerProfile: it is live telemetry, deliberately kept separate from
+  // the registered address so an emergency is never dispatched to a home
+  // address that the patient is nowhere near.
+  currentLatitude       Float?
+  currentLongitude      Float?
+  lastLocationUpdate    DateTime?
   medicalHistory        Json?
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt

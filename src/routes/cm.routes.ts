@@ -3,6 +3,7 @@ import { requireCareManager } from '../middlewares/auth.middleware.js';
 import { requireConsent } from '../middlewares/consent.middleware.js';
 import { validateRequest } from '../middlewares/validate.middleware.js';
 import { CmController } from '../controllers/cm.controller.js';
+import { PatientLocationController } from '../controllers/patientLocation.controller.js';
 import { SettingsController } from '../controllers/settings.controller.js';
 import { DocumentController } from '../controllers/document.controller.js';
 import { ConsentController } from '../controllers/consent.controller.js';
@@ -203,5 +204,27 @@ router.get('/patients/:patientId/documents', requireConsent, DocumentController.
  *     responses: { 200: { description: Clinical document retrieved } }
  */
 router.get('/documents/:id', requireConsent, DocumentController.getById);
+
+
+/**
+ * @openapi
+ * /cm/cases/{id}/patient-location:
+ *   get:
+ *     summary: Patient's live position for one of my active cases (Care Manager App)
+ *     description: >
+ *       Returns the last position reported by the patient's device so the care
+ *       manager can reach them. Requires the case to be assigned to the caller,
+ *       to still be active, and the patient's consent (granted automatically
+ *       when the case was raised, and revocable by the patient) to be
+ *       unexpired. Every read is recorded on the case timeline.
+ *     tags: [App - Care Manager]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters: [{ in: path, name: id, required: true, schema: { type: string, format: uuid } }]
+ *     responses:
+ *       200: { description: Patient location retrieved }
+ *       403: { description: Consent missing/expired, or the case is closed }
+ *       404: { description: Case not found or not assigned to you }
+ */
+router.get('/cases/:id/patient-location', PatientLocationController.forCareManager);
 
 export default router;

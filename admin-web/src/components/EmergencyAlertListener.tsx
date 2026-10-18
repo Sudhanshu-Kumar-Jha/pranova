@@ -21,6 +21,8 @@ interface EmergencyData {
   patientName: string;
   patientPhone: string;
   incidentAddress?: string | null;
+  /** How the pin was obtained: a live fix, a last-known one, or nothing. */
+  locationSource?: 'LIVE' | 'LAST_KNOWN' | 'NONE';
   incidentLatitude?: number | null;
   incidentLongitude?: number | null;
   timestamp: string;
@@ -169,6 +171,19 @@ export const EmergencyAlertListener: React.FC = () => {
                 longitude={e.incidentLongitude || undefined}
                 emptyText="Location Unavailable (No GPS Fix)"
               />
+              {/* A dispatcher has to know whether this pin came from the
+                  patient's device just now or is older — the two are not
+                  equally safe to drive to. */}
+              {e.locationSource === 'LAST_KNOWN' && (
+                <Box component="div" sx={{ mt: 0.5, fontSize: '0.75rem', color: color.warning, fontWeight: 600 }}>
+                  Last known device position — not a fresh fix. Confirm with the patient.
+                </Box>
+              )}
+              {e.locationSource === 'NONE' && (
+                <Box component="div" sx={{ mt: 0.5, fontSize: '0.75rem', color: color.error, fontWeight: 600 }}>
+                  The device sent no position. Call the patient — the registered address may be the wrong city.
+                </Box>
+              )}
             </InfoItem>
           </InfoGrid>
         </Box>

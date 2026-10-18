@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { CaseController } from '../controllers/case.controller.js';
+import { PatientLocationController } from '../controllers/patientLocation.controller.js';
 import { requireAdmin } from '../middlewares/auth.middleware.js';
 import { validateRequest } from '../middlewares/validate.middleware.js';
 import {
@@ -259,5 +260,27 @@ router.patch('/:id/status', validateRequest(updateCaseStatusSchema), CaseControl
  *               $ref: '#/components/schemas/ApiResponse'
  */
 router.post('/:id/acknowledge', CaseController.acknowledge);
+
+
+/**
+ * @openapi
+ * /cases/{id}/patient-location:
+ *   get:
+ *     summary: Patient's live position for an active case (Admin console)
+ *     description: >
+ *       Returns the last position reported by the patient's own device, for
+ *       dispatch. Available only while the case is active — closing the case
+ *       ends location sharing. The registered address is returned for context
+ *       but is never the dispatch target. Every read is recorded on the case
+ *       timeline.
+ *     tags: [Emergency SOS & Cases]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters: [{ in: path, name: id, required: true, schema: { type: string, format: uuid } }]
+ *     responses:
+ *       200: { description: Patient location retrieved }
+ *       403: { description: Case is closed, so sharing has ended }
+ *       404: { description: Case not found }
+ */
+router.get('/:id/patient-location', PatientLocationController.forAdmin);
 
 export default router;
